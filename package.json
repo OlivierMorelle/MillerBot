@@ -1,5 +1,5 @@
 {
-  "name": "presence-bot",
+  "name": "miller-bot",
   "version": "0.1.0",
   "description": "Bot that lists and ping people that did not send any message in a specific channel",
   "main": "index.js",
