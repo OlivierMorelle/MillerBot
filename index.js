@@ -3,7 +3,8 @@
 
 const { Client, Intents } = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS, "GUILDS", "GUILD_MESSAGES", "GUILD_PRESENCES", "GUILD_MEMBERS", "DIRECT_MESSAGES"] });
-const { token } = require('./auth.json');
+// const { token } = require('./auth.json');
+require("dotenv").config();
 
 client.once('ready', () => console.log('Ready!'));
 
@@ -95,4 +96,5 @@ client.on('interactionCreate', async interaction => {
 });
 
 // Login to Discord with your client's token
-client.login(token);
+// client.login(token);
+client.login(process.env.BOT_TOKEN);
