@@ -5,6 +5,7 @@ const { clientId, guildId, token } = require('./auth.json');
 
 const commands = [
     new SlashCommandBuilder().setName('presence').setDescription('Liste des présences.'),
+    new SlashCommandBuilder().setName('count-members').setDescription('Compte les membres RCC.'),
     new SlashCommandBuilder().setName('signalez').setDescription('Merci d\'indiquez votre présence !'),
     new SlashCommandBuilder().setName('absence').setDescription('Liste des absences.'),
     new SlashCommandBuilder().setName('annonce-mission').setDescription('Fait une annonce !')
