@@ -43,30 +43,30 @@ client.on('messageCreate', async message => {
         let countRejected = 0;
 
         console.log("=======================================================================================================\nCommande de présence lancé par :" + message.author.tag);
-        const cmdLaunchedBy = message.author.id;
+        const cmdLaunchedById = message.author.id;
+        const cmdMember = chanMembers.find(element => element.user.id === cmdLaunchedById);
+        if ((cmdLaunchedById === "134729717550022656") || (roleAdmin.some(elRole => cmdMember._roles.includes(elRole)))) {
+            console.log(cmdMember.user.username + " est du staff, modo ou test cmd.")
+        } else {
+            console.log(cmdMember.user.username + "n'a pas les droits pour cette commande, exit.")
+        }
 
-        // for (let i = 0; i < chanMembers.length; i++) {
-        //     console.log(chanMembers[i].user.id);
-        //     console.log(chanMembers[i]._roles);
-        // }
-        chanMembers.forEach((oMember) => {
-            if (roleAdmin.some(el => oMember._roles.includes(el))) {
-                console.log("Vous n'avez pas les droits pour cette commandes.")
-             }
-
+        console.time();
+        for (let i = 0; i < chanMembers.length; i++) {  // chanMembers.forEach((oMember) => {
             countAllDiscordPeople++;
-            if (roleConditionNotif.some(el => oMember._roles.includes(el))) {
-                countMembreAndAmi ++; // console.log(`${oMember.user.id} ${oMember.user.username} possède un role adéquat pour la mission`);
-                memberRoleAllowedFromChannel.push(oMember.user.id);
-                if (oMember._roles.find(oRole => oRole === roleConditionNotif[0])) {
-                    memberToMentionWithNotif.push(oMember.user.id);
-                } else if (oMember._roles.find(oRole => oRole === roleConditionNotif[1])) {
-                    memberToMentionWithoutNotif.push(oMember.user.id);
+            if (roleConditionNotif.some(el => chanMembers[i]._roles.includes(el))) {
+                countMembreAndAmi ++; // console.log(`${chanMembers[i].user.id} ${chanMembers[i].user.username} possède un role adéquat pour la mission`);
+                memberRoleAllowedFromChannel.push(chanMembers[i].user.id);
+                if (chanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[0])) {
+                    memberToMentionWithNotif.push(chanMembers[i].user.id);
+                } else if (chanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[1])) {
+                    memberToMentionWithoutNotif.push(chanMembers[i].user.id);
                 }
             } else {
-                countRejected++; //console.log(`${oMember.user.id} ${oMember.user.username} n'a pas de role adéquat pour la mission`);
+                countRejected++; //console.log(`${chanMembers[i].user.id} ${chanMembers[i].user.username} n'a pas de role adéquat pour la mission`);
             }
-        });
+        }
+        console.timeEnd();
         // console.log(`All: ${countAllDiscordPeople} - Membre or Ami: ${countMembreAndAmi} (Membre: ${countMembreRCC} - Ami: ${memberToMentionWithoutNotif.lenght}) - Rejected: ${countRejected}`);
 
         // check messages a first time
