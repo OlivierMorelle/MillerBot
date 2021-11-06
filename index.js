@@ -88,7 +88,7 @@ client.on('messageCreate', async message => {
             }
         });
         console.log(`Effectif max potentiel: x/${memberRoleAllowedFromChannel.length} manifestés`);
-        message.channel.send(`Merci d'indiquer votre présence/absence et de choisir un slot ${strUnmanifestedNotif} !`);
+        message.channel.send(`Merci d'indiquer votre présence/absence et de choisir un slot ${strUnmanifestedNotif}sinon: :gulag: `);
         message.channel.send(`(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) ${strManifestedAlready} l'ont déjà fait :ok_hand:`);
 
         await wait(2000);
@@ -115,6 +115,9 @@ _Absent: _\n`);
     } else if ((command === 'say') && (checkAdminOrModo(chanMembers))) {
         message.delete();
         message.channel.send(argText);
+    } else if ((command === 'count-unmanifested') && (checkAdminOrModo(chanMembers))) {
+        message.delete();
+        message.channel.send(argText);
     } else if ((command === 'clear-for-presence') && (checkAdminOrModo(chanMembers))) {
         let [nMsgToRm] = args; // es5: let age = args[0]; es6: let [nMsgToRm, arg2, arg3] = args;
         if ((args.length !== 0) && (args[0] < 101)) {
@@ -135,5 +138,101 @@ _Absent: _\n`);
     }
 });
 
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
+    const {commandName} = interaction;
+/*
+    if (commandName === 'say') {
+        // const string = interaction.options.getString('message');
+        // const chan = interaction.options.getChannel('salon');
+    } else if (commandName === 'presence') {
+        const guild = await client.guilds.cache.get('631191166934581249');
+        // const chan = await guild.channels.fetch('902659520214466560'); // to test a specify channel
+        const chan = interaction.options.getChannel('salon-mission');
+        const chanMessages = await chan.messages.fetch();
+        const chanMembers = await chan.members.map(oMembre=>oMembre);
+        const roleConditionNotif = ["652144621023002637", "652143998252744724"];
+        const roleAdmin = ["631235492763009054", "652145728910524436"];
+        const memberRoleAllowedFromChannel = [];
+        const memberToMentionWithNotif = []; // effectif Membre RCC selon [0]
+        const memberToMentionWithoutNotif = []; // effectif Amis RCC selon [1]
+        const manifestedMemberId = [];
+        const unmanifestedMemberId = [];
+        let strManifestedAlready = '';
+        let strUnmanifested = '';
+        let strUnmanifestedNotif = '';
+        let countAllChannelPeople = 0;
+        let countMembreAndAmi = 0;
+        let countMembreRCCPresent = 0;
+        let countRejected = 0;
+
+        // console.log(interaction);
+        function checkAdminOrModo(pChanMembers) {
+            const cmdLaunchedById = interaction.user.id;
+            const cmdMember = pChanMembers.find(element => element.user.id === cmdLaunchedById);
+            if ((cmdLaunchedById === "134729717550022656") || (roleAdmin.some(elRole => cmdMember._roles.includes(elRole)))) {
+                console.log(cmdMember.user.username + " est du staff, modo ou test cmd.")
+                return true;
+            } else {
+                console.log(cmdMember.user.username + "n'a pas les droits pour cette commande, exit.\n=======================================================================================================\n")
+                return false;
+            }
+        }
+        console.log("=======================================================================================================\nCommande de présence lancé par :" + interaction.user.username);
+        if (checkAdminOrModo(chanMembers)) {
+            for (let i = 0; i < chanMembers.length; i++) {
+                countAllChannelPeople++;
+                if (roleConditionNotif.some(el => chanMembers[i]._roles.includes(el))) {
+                    countMembreAndAmi ++; // console.log(`${chanMembers[i].user.id} ${chanMembers[i].user.username} possède un role adéquat pour la mission`);
+                    memberRoleAllowedFromChannel.push(chanMembers[i].user.id);
+                    if (chanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[0])) {
+                        memberToMentionWithNotif.push(chanMembers[i].user.id);
+                    } else if (chanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[1])) {
+                        memberToMentionWithoutNotif.push(chanMembers[i].user.id);
+                    }
+                } else {
+                    countRejected++; //console.log(`${chanMembers[i].user.id} ${chanMembers[i].user.username} n'a pas de role adéquat pour la mission`);
+                }
+            }
+            console.log(`All: ${countAllChannelPeople} - Membre or Ami: ${countMembreAndAmi} - Ami: ${memberToMentionWithoutNotif.lenght}) - Rejected: ${countRejected}`);
+
+            // check messages a first time and list users ID that sent a message in channel without duplicate ID
+            chanMessages.forEach((message) => {
+                if ((memberRoleAllowedFromChannel.includes(message.author.id)) && (manifestedMemberId.indexOf(message.author.id) === -1)) {
+                    manifestedMemberId.push(message.author.id);
+                    strManifestedAlready = strManifestedAlready + `${message.author.username} - `;
+                    console.log(`${message.author.username} Signalé `);
+                    if (memberToMentionWithNotif.includes(message.author.id)) {
+                        countMembreRCCPresent++;
+                    }
+                }
+            });
+
+            // check messages a second time after collecting user ID on messages and list users ID not in manifestedMemberId (no duplicate ID)
+            memberRoleAllowedFromChannel.forEach((oMemberId) => {
+                if ((manifestedMemberId.indexOf(oMemberId) === -1) && (unmanifestedMemberId.indexOf(oMemberId) === -1)) {
+                    unmanifestedMemberId.push(oMemberId);
+                    console.log(`${oMemberId} non encore manifesté `);
+                    if (memberToMentionWithNotif.includes(oMemberId)) {
+                        strUnmanifestedNotif = `<@${oMemberId}> ` + strUnmanifestedNotif;
+                    } /*else if (memberToMentionWithoutNotif.includes(oMemberId)) {
+                        // strUnmanifested = `${oMemberId} ` + strUnmanifested;
+                        // find(element => element > 10);
+                    }
+                }
+            });
+            console.log(`Effectif max potentiel: x/${memberRoleAllowedFromChannel.length} manifestés`);
+            // interaction.reply(`Merci d'indiquer votre présence/absence et de choisir un slot ${strUnmanifestedNotif} !`);
+            // interaction.reply(`(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) ${strManifestedAlready} l'ont déjà fait :ok_hand:`);
+
+            await wait(2000);
+            // message.delete();
+        }
+    // } else if (commandName === 'count-members') {
+    } else*/ if (commandName === 'test') {
+        await interaction.reply({content: 'Commandes de test envoyée... ', ephemeral: true});
+        interaction.channel.send('Hello there... :hello: ');
+    }
+});
 
 client.login(process.env.BOT_TOKEN); // client.login(token);

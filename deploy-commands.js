@@ -3,7 +3,7 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { clientId, guildId, token } = require('./auth.json');
 
-const commands = [
+const commands = [/*
     new SlashCommandBuilder().setName('say').setDescription('Miller a quelque chose à dire.')
         .addStringOption(option => option.setName('message').setDescription('Message à envoyer')),
         // .addChannelOption(option => option.setName('salon').setDescription('Select a mission channel')),
@@ -17,7 +17,7 @@ const commands = [
     //     .addRoleOption(option => option.setName('muted').setDescription('Select a role')),
     new SlashCommandBuilder().setName('server').setDescription('Replies with server info !'),
     new SlashCommandBuilder().setName('user').setDescription('Replies with user info !'),
-    // new SlashCommandBuilder().setName('clear-messages').setDescription('Clear messages !'),
+    // new SlashCommandBuilder().setName('clear-messages').setDescription('Clear messages !'),*/
     new SlashCommandBuilder().setName('test').setDescription('test fonctionnel'),
 ]
     .map(command => command.toJSON());
