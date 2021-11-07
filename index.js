@@ -109,7 +109,7 @@ Slot temporaire:
 Slot temporaire: \n
 <@&652144621023002637> et <@&652143998252744724>
 Pensez à vous inscrire et à manifester votre présence / Absence pour aider les GM merci.
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 _Absent: _\n`);
 
     } else if ((command === 'say') && (checkAdminOrModo(chanMembers))) {
@@ -121,11 +121,10 @@ _Absent: _\n`);
     } else if ((command === 'clear-for-presence') && (checkAdminOrModo(chanMembers))) {
         let [nMsgToRm] = args; // es5: let age = args[0]; es6: let [nMsgToRm, arg2, arg3] = args;
         if ((args.length !== 0) && (args[0] < 101)) {
+            await wait(2000);
             await message.channel.bulkDelete(`${nMsgToRm}`)
                 .then(messages => console.log(`Bulk deleted ${messages.size} messages`))
                 .catch(console.error);
-            await wait(2000);
-            message.delete();
         } else {
             console.log("La commande !clear-for-presence doit avoir un nombre (max 100) en paramètre.")
             await message.channel.send({
