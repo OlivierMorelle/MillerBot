@@ -3,7 +3,9 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const { clientId, guildId, token } = require('./auth.json');
 
-const commands = [/*
+const commands = [
+    /*
+    new SlashCommandBuilder().setName('count-presence').setDescription('Affiche et compte les présences/absences en privé.'),
     new SlashCommandBuilder().setName('say').setDescription('Miller a quelque chose à dire.')
         .addStringOption(option => option.setName('message').setDescription('Message à envoyer')),
         // .addChannelOption(option => option.setName('salon').setDescription('Select a mission channel')),
