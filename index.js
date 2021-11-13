@@ -105,13 +105,11 @@ client.on('messageCreate', async message => {
 
                 // string construction
                 if (recap !== true) {
-                    console.log(mapMembersManifested);
                     strManifestedAlready = strManifestedAlready + `${tName} - `;
                 } else if (message.author.id !== oMessage.author.id) {
                     countList++;
                     strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${oMessage.content}_"\n`;
                 }
-                console.log(`${tName} s'est manifesté. `);
                 if (memberToMentionWithNotif.includes(tmpMemberId)) {
                     countMembreRCCPresent++;
                 }
@@ -135,7 +133,6 @@ client.on('messageCreate', async message => {
                         countList++;
                         toCheck = await guild.members.fetch(oMemberId);
                         strUnmanifestedRecap = strUnmanifestedRecap + `${countList}. **${(checkNickname(toCheck))}**\n`;
-                        console.log(strUnmanifestedRecap);
                     }
                 } //else if (memberToMentionWithoutNotif.includes(oMemberId)) {
                 // strUnmanifested = `${oMemberId} ` + strUnmanifested;
@@ -155,7 +152,6 @@ client.on('messageCreate', async message => {
         listMembersChannelMessagesOnce(chanMessages)
 
         // check messages a second time after collecting user ID on messages and list users ID not in manifestedMemberId (no duplicate ID)
-        console.log(memberRoleAllowedFromChannel);
         await listNotAlreadyListedMembersChannel(memberRoleAllowedFromChannel, unmanifestedMemberId)
 
         console.log(`Effectif max potentiel: ${memberRoleAllowedFromChannel.length}`);
@@ -174,8 +170,6 @@ client.on('messageCreate', async message => {
 
         // check messages a second time after collecting user ID on messages and list users ID not in manifestedMemberId (no duplicate ID)
         await listNotAlreadyListedMembersChannel(memberRoleAllowedFromChannel, unmanifestedMemberId, recap)
-
-        console.log(strUnmanifestedRecap);
 
         message.channel.send(`__(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) Se sont manifestés:__ \n ${strManifestedAlready} \n ▬▬▬▬▬▬▬▬▬▬▬`);
         message.channel.send(`__Ne se sont pas manifestés:__ \n ${strUnmanifestedRecap}`);
