@@ -30,14 +30,14 @@ client.on('messageCreate', async message => {
     const command = args.shift().toLowerCase();
     const argText = message.content.slice(5);
 
-    const guild = await client.guilds.cache.get('631191166934581249'); // guild RCC
-    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test
+    // const guild = await client.guilds.cache.get('631191166934581249'); // guild RCC
+    const guild = await client.guilds.cache.get('238725589379317761'); // guild test
     // const chan = await guild.channels.fetch('904052206435700806'); // to test a specify channel
     let chan = await message.channel;
     const chanMessages = await chan.messages.fetch();
     const chanMembers = await chan.members.map(oMembre => oMembre);
-    const roleConditionNotif = ["652144621023002637", "652143998252744724"];
-    // const roleConditionNotif = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    // const roleConditionNotif = ["652144621023002637", "652143998252744724"];
+    const roleConditionNotif = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
     const roleAdmin = ["631235492763009054", "652145728910524436"];
     const memberRoleAllowedFromChannel = [];
     const memberToMentionWithNotif = []; // effectif Membre RCC selon [0]
@@ -95,6 +95,7 @@ client.on('messageCreate', async message => {
     function listMembersChannelMessagesOnce(argChanMessages, recap) {
         let tmpMemberId;
         let countList = 0;
+        let strShortened;
         argChanMessages.forEach((oMessage) => {
             if ((memberRoleAllowedFromChannel.includes(oMessage.author.id)) && (manifestedMemberId.indexOf(oMessage.author.id) === -1)) {
                 tmpMemberId = oMessage.author.id;
@@ -108,8 +109,17 @@ client.on('messageCreate', async message => {
                     strManifestedAlready = strManifestedAlready + `${tName} - `;
                 } else if (message.author.id !== oMessage.author.id) {
                     countList++;
-                    strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${oMessage.content}_"\n`;
+                    if (oMessage.content.length > 18) {
+                        strShortened = oMessage.content.slice(0, 18);
+                        strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${strShortened}_"\n`;
+                    } else {
+                        strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${oMessage.content}_"\n`;
+                    }
                 }
+                // else if (message.author.id === oMessage.author.id) {
+                //     countList++;
+                //     strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_Message de commande Miller_"\n`;
+                // }
                 if (memberToMentionWithNotif.includes(tmpMemberId)) {
                     countMembreRCCPresent++;
                 }
