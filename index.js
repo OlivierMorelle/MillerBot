@@ -30,26 +30,34 @@ client.on('messageCreate', async message => {
     const command = args.shift().toLowerCase();
     const argText = message.content.slice(5);
 
-    const guild = await client.guilds.cache.get('631191166934581249'); // guild RCC
-    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test
+    /*test values*/
+    const guild = await client.guilds.cache.get('238725589379317761'); // guild test
+    const roleConditionNotif = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
     // const chan = await guild.channels.fetch('904052206435700806'); // to test a specify channel
+
+    /*prod values*/
+    // const guild = await client.guilds.cache.get('631191166934581249'); // guild RCC
+    // const roleConditionNotif = ["652144621023002637", "652143998252744724"];
+
     let chan = await message.channel;
     const chanMessages = await chan.messages.fetch();
     const chanMembers = await chan.members.map(oMembre => oMembre);
-    const roleConditionNotif = ["652144621023002637", "652143998252744724"];
-    // const roleConditionNotif = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
     const roleAdmin = ["631235492763009054", "652145728910524436"];
     const memberRoleAllowedFromChannel = [];
     const memberToMentionWithNotif = []; // effectif Membre RCC selon [0]
-    const memberToMentionWithoutNotif = []; // effectif Amis RCC selon [1]
+    const memberToMentionWithoutNotif = []; // effectif Amis RCC selon [1] but to notified from now (staff request)
+    const rejectedMemberRoles = []; // not having adequate roles
     const manifestedMemberId = [];
     const unmanifestedMemberId = [];
     let strManifestedAlready = '';
     let strUnmanifestedNotif = '';
+    let strUnmanifestedAmi = '';
     let strUnmanifestedRecap = '';
+    let strUnmanifestedAmiRecap = '';
     let countAllChannelPeople = 0;
     let countMembreAndAmi = 0;
     let countMembreRCCPresent = 0;
+    let countMembreAmiPresent = 0;
     let countRejected = 0;
     let recap = false;
     const mapMembersManifested = new Map();
@@ -59,13 +67,19 @@ client.on('messageCreate', async message => {
         const cmdLaunchedById = message.author.id;
         const cmdMember = argMembers.find(element => element.user.id === cmdLaunchedById);
         if ((cmdLaunchedById === "134729717550022656") || (roleAdmin.some(elRole => cmdMember._roles.includes(elRole)))) {
-            console.log(cmdMember.user.username + " est du staff, modo ou test cmd, a exécuté une commande.")
+            console.log(cmdMember.user.username + " est dev, modo ou admin a exécuté une commande.")
             return true;
         } else {
             console.log(cmdMember.user.username + "n'a pas les droits pour cette commande, exit.\n=======================================================================================================\n")
             return false;
         }
     }
+
+    /**
+     * Check if there is a specific RCC nickname
+     * @param memberToCheck
+     * @returns {string}
+     */
     function checkNickname(memberToCheck) {
         let tmpName;
         let tmpNick = memberToCheck.nickname;
@@ -74,6 +88,10 @@ client.on('messageCreate', async message => {
         return tmpName;
     }
 
+    /*
+    * Sort Membres by Roles
+    * values:: ?.??
+     */
     function sortMembers(argChanMembers){
         for (let i = 0; i < argChanMembers.length; i++) {
             countAllChannelPeople++;
@@ -143,7 +161,134 @@ client.on('messageCreate', async message => {
     }
 
 
+
+    /** Sort players by Roles **
+     *
+     * @param argChanMembers
+     * countAllChannelPeople        // number
+     * countMembreAndAmi            // number
+     * memberRoleAllowedFromChannel // Array IDs Membre + Ami
+     * memberToMentionWithNotif     // Array IDs Membre only
+     * memberToMentionWithoutNotif  // Array IDs Amis only
+     * rejectedMemberRoles          // Array usernames (bot mostly)
+     */
+    function tSortingMembersByRole(argChanMembers){
+        for (let i = 0; i < argChanMembers.length; i++) {
+            countAllChannelPeople++;
+            if (roleConditionNotif.some(el => argChanMembers[i]._roles.includes(el))) {
+                countMembreAndAmi++; // console.log(`${argChanMembers[i].user.id} ${argChanMembers[i].user.username} possède un role adéquat pour la mission`);
+                memberRoleAllowedFromChannel.push(argChanMembers[i].user.id);
+                if (argChanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[0])) {
+                    memberToMentionWithNotif.push(argChanMembers[i].user.id); // membres RCC
+                } else if (argChanMembers[i]._roles.find(oRole => oRole === roleConditionNotif[1])) {
+                    memberToMentionWithoutNotif.push(argChanMembers[i].user.id); // amis RCC
+                }
+            } else {
+                rejectedMemberRoles.push(argChanMembers[i].user.username);
+                countRejected++; //console.log(`${argChanMembers[i].user.id} ${argChanMembers[i].user.username} n'a pas de role adéquat pour la mission, mostly bot`);
+            }
+        }
+        console.log(`Count channel people: ${countAllChannelPeople}\nMembre or Ami: ${countMembreAndAmi} (Membre: ${memberToMentionWithNotif.length} - Ami: ${memberToMentionWithoutNotif.length})\n${countRejected} rejected: ${rejectedMemberRoles} `);
+        return memberRoleAllowedFromChannel;
+    }
+
+    /** List manifested players **
+     *
+     * @param argChanMessages // message for code processing
+     * @param recap // recap mode if
+     * manifestedMemberId // array manifestedMemberId (Membre + Ami)
+     */
+    function tlistManifestedMembers(argChanMessages, recap) {
+        let tmpMemberId; // index : channel messages author looped
+        let countList = 0;
+        argChanMessages.forEach((oMessage) => {
+            if ((memberRoleAllowedFromChannel.includes(oMessage.author.id)) && (manifestedMemberId.indexOf(oMessage.author.id) === -1)) {
+                manifestedMemberId.push(oMessage.author.id);
+                //console.log(manifestedMemberId);
+
+                tmpMemberId = oMessage.author.id;
+                checkNick = oMessage.member.nickname;
+                tName = checkNickname(oMessage.member);
+                // mapMembersManifested.set(tmpNick, oMessage.content);
+
+                // count members only
+                if (memberToMentionWithNotif.includes(tmpMemberId)) {
+                    countMembreRCCPresent++;
+                } else if (memberToMentionWithoutNotif.includes(tmpMemberId)) {
+                    countMembreAmiPresent++;
+                }
+
+                // string building
+                if (recap !== true) {
+                    strManifestedAlready = strManifestedAlready + `${tName} - `;
+                } else if (message.author.id !== oMessage.author.id) {
+                    // Nicknames for recap (not any notifications so no ID interpretation by Discord)
+                    countList++;
+                    strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${oMessage.content}_"\n`;
+                }
+            }
+        });
+        return manifestedMemberId;
+    }
+
+    /** List Unmanifested players **
+     *
+     * @param aMemberAllowed
+     * @param manifestedPlayersId
+     * @param unmanifestedMemberId
+     * @param recap
+     * @returns {Promise<void>}
+     */
+    async function tlistUnmanifestedChannelPlayers(aMemberAllowed, manifestedPlayersId, unmanifestedMemberId, recap) {
+        let countList = 0;
+        let countListAmi = 0;
+
+        for (const oMemberId of aMemberAllowed) {
+            if ((manifestedMemberId.indexOf(oMemberId) === -1) && (unmanifestedMemberId.indexOf(oMemberId) === -1)) {
+                unmanifestedMemberId.push(oMemberId);
+                console.log(`${oMemberId} non encore manifesté. `);
+                if (memberToMentionWithNotif.includes(oMemberId)) {
+                    if (recap !== true) {
+                        strUnmanifestedNotif = `<@${oMemberId}> ` + strUnmanifestedNotif;
+                        // strUnmanifestedNotif = `${oMemberId} ` + strUnmanifestedNotif;
+                    } else {
+                        countList++;
+                        toCheck = await guild.members.fetch(oMemberId);
+                        strUnmanifestedRecap = strUnmanifestedRecap + `${countList}. **${(checkNickname(toCheck))}**\n`;
+                    }
+                }
+                if (memberToMentionWithoutNotif.includes(oMemberId)) {
+                    if (recap !== true) {
+                        strUnmanifestedAmi = `<@${oMemberId}> ` + strUnmanifestedAmi;
+                        // strUnmanifestedAmi = `${oMemberId} ` + strUnmanifestedAmi;
+                    } else {
+                        countList++;
+                        toCheck = await guild.members.fetch(oMemberId);
+                        strUnmanifestedAmiRecap = strUnmanifestedAmiRecap + `${countListAmi}. **${(checkNickname(toCheck))}**\n`;
+                    }
+                }
+            }
+        }
+    }
+
     if ((command === 'presence') && (checkAdminOrModo(chanMembers))) {
+        // sort members by roles
+        returnedRoles = tSortingMembersByRole(chanMembers);
+
+        // process each message in channel, get manifestedMemberId (Membre + ami)
+        returnedManifestedPlayersID = tlistManifestedMembers(chanMessages);
+
+        // list result
+        await tlistUnmanifestedChannelPlayers(returnedRoles, returnedManifestedPlayersID, unmanifestedMemberId, recap)
+
+        // send message result
+        message.channel.send(`Merci d'indiquer votre **présence/absence** et de choisir un **slot** ${strUnmanifestedNotif} ${strUnmanifestedAmi}`);
+        message.channel.send(`(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) membres RCC et (${countMembreAmiPresent}/${memberToMentionWithoutNotif.length}) amis RCC ${strManifestedAlready} l'ont déjà fait :ok_hand:`);
+
+        await wait(2000);
+        message.delete();
+    }
+    if ((command === 'old-presence') && (checkAdminOrModo(chanMembers))) {
         console.log("=======================================================================================================\nCommande de présence lancé par: " + message.author.tag);
         // sort members by roles
         sortMembers(chanMembers);
@@ -161,7 +306,7 @@ client.on('messageCreate', async message => {
         await wait(2000);
         message.delete();
     } else if ((command === 'recap') && (checkAdminOrModo(chanMembers))) {
-        console.log("=======================================================================================================\nCommande de présence lancé par: " + message.author.tag);
+        console.log("=======================================================================================================\nCommande de récap lancé par: " + message.author.tag);
         recap = true;
         sortMembers(chanMembers);
 
@@ -169,7 +314,7 @@ client.on('messageCreate', async message => {
         listMembersChannelMessagesOnce(chanMessages, recap)
 
         // check messages a second time after collecting user ID on messages and list users ID not in manifestedMemberId (no duplicate ID)
-        await listNotAlreadyListedMembersChannel(memberRoleAllowedFromChannel, unmanifestedMemberId, recap)
+        await listNotAlreadyListedMembersChannel(memberRoleAllowedFromChannel, manifestedMemberId, unmanifestedMemberId, recap)
 
         message.channel.send(`__(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) Se sont manifestés:__ \n ${strManifestedAlready} \n ▬▬▬▬▬▬▬▬▬▬▬`);
         message.channel.send(`__Ne se sont pas manifestés:__ \n ${strUnmanifestedRecap}`);
