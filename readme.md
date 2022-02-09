@@ -1,8 +1,11 @@
 README
 ======
 
-node bot.js
-> run the bot file
+- Copy/Paste .env & auth.json
+- npm i
+- node index.js
 
 > config dans package.json
+>
+> run the bot file
 
