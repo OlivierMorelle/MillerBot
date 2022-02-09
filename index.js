@@ -33,6 +33,7 @@ client.on('messageCreate', async message => {
     /*test values*/
     // const guild = await client.guilds.cache.get('238725589379317761'); // guild test
     // const roleConditionNotif = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    
     // const chan = await guild.channels.fetch('904052206435700806'); // to test a specify channel
 
     /*prod values*/
@@ -129,6 +130,7 @@ client.on('messageCreate', async message => {
     function tlistManifestedMembers(argChanMessages, recap) {
         let tmpMemberId; // index : channel messages author looped
         let countList = 0;
+        let msgContentCut = "";
 
         argChanMessages.forEach((oMessage) => {
             if ((memberRoleAllowedFromChannel.includes(oMessage.author.id)) && (manifestedMemberId.indexOf(oMessage.author.id) === -1)) {
@@ -139,27 +141,34 @@ client.on('messageCreate', async message => {
                 checkNick = oMessage.member.nickname;
                 tName = checkNickname(oMessage.member);
                 // mapMembersManifested.set(tmpNick, oMessage.content);
+                msgContentCut = oMessage.content;
 
                 // count members only
                 if (memberToMentionWithNotif.includes(tmpMemberId)) {
                     countMembreRCCPresent++;
                     if (recap === true) {
-                        strManifestedMembreAlready = strManifestedMembreAlready + `${countMembreRCCPresent}. **${tName}**: "_${oMessage.content}_"\n`;
+                        if (message.author.id == oMessage.author.id) { msgContentCut = "cmd"; }
+                        strManifestedMembreAlready = strManifestedMembreAlready + `${countMembreRCCPresent}. **${tName}**: "_${msgContentCut.slice(0,8)}_"\n`;
                     }
                 } else if (memberToMentionWithoutNotif.includes(tmpMemberId)) {
                     countMembreAmiPresent++;
                     if (recap === true) {
-                        strManifestedAmiAlready = strManifestedAmiAlready + `${countMembreAmiPresent}. **${tName}**: "_${oMessage.content}_"\n`;
+                        if (message.author.id == oMessage.author.id) { msgContentCut = "cmd"; }
+                        strManifestedAmiAlready = strManifestedAmiAlready + `${countMembreAmiPresent}. **${tName}**: "_${msgContentCut.slice(0,8)}_"\n`;
                     }
                 }
 
                 // string building
                 if (recap !== true) {
                     strManifestedAlready = strManifestedAlready + `${tName} - `;
-                } else /*if (message.author.id !== oMessage.author.id)*/ {
+                } else if (message.author.id !== oMessage.author.id) { //avoid recap message !!!
                     // Nicknames for recap (not any notifications so no ID interpretation by Discord)
                     countList++;
-                    strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${oMessage.content}_"\n`;
+                    if (message.author.id !== oMessage.author.id) { msgContentCut = "cmd"; }
+                    strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**: "_${msgContentCut.slice(0,8)}_"\n`;
+                } else {
+                    countList++;
+                    strManifestedAlready = strManifestedAlready + `${countList}. **${tName}**"\n`;
                 }
             }
         });
@@ -217,7 +226,7 @@ client.on('messageCreate', async message => {
         await tlistUnmanifestedChannelPlayers(returnedRoles, returnedManifestedPlayersID, unmanifestedMemberId, recap)
 
         // send message result
-        message.channel.send(`Merci d'indiquer votre **présence/absence** et de choisir un **slot** ${strUnmanifestedNotif} ${strUnmanifestedAmi}`);
+        message.channel.send(`Merci d'indiquer votre **présence/absence** et de choisir un **slot** ${strUnmanifestedNotif}\n${strUnmanifestedAmi}`);
         message.channel.send(`(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) membres RCC et (${countMembreAmiPresent}/${memberToMentionWithoutNotif.length}) amis RCC ${strManifestedAlready} l'ont déjà fait :ok_hand:`);
 
         await wait(2000);
@@ -234,7 +243,7 @@ client.on('messageCreate', async message => {
         // list result
         await tlistUnmanifestedChannelPlayers(returnedRoles, returnedManifestedPlayersID, unmanifestedMemberId, recap)
 
-        message.channel.send(`__(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) membres qui se sont manifestés:__ \n ${strManifestedMembreAlready}\n __(${countMembreAmiPresent}/${memberToMentionWithoutNotif.length}) Amis:__ \n ${strManifestedAmiAlready} \n ▬▬▬▬▬▬▬▬▬▬▬`);
+        message.channel.send(`__(${countMembreRCCPresent}/${memberToMentionWithNotif.length}) membres se sont manifestés:__ \n ${strManifestedMembreAlready}\n __(${countMembreAmiPresent}/${memberToMentionWithoutNotif.length}) Amis:__ \n ${strManifestedAmiAlready} \n ▬▬▬▬▬▬▬▬▬▬▬`);
         message.channel.send(`__Ne se sont pas manifestés:__ \n ${strUnmanifestedRecap} \n ${strUnmanifestedAmiRecap}`);
 
         await wait(2000);
