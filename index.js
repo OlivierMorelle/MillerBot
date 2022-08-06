@@ -21,6 +21,7 @@ client.on('messageCreate', async message => {
     const regexUser = /<@[0-9]{18}>/;
     let msgContent = message.content;
 
+    const OWNER_ID = "134729717550022656";
     const guild = await client.guilds.cache.get('238725589379317761'); // guild test
     const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
     const aRoleBlackList = ["666"]; // exception de ping sur ce role
@@ -44,13 +45,17 @@ client.on('messageCreate', async message => {
      * Guy classe and constructor
      */
     class Guy {
-        constructor (id, nickname, roles, isRccMember, hasCredential, hasException) {
+        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = timestamp) {
             this.id = id;
             this.nickname = nickname;
             this.roles = roles;
             this.isRccMember = isRccMember;
             this.hasCredential = hasCredential;
             this.hasException = hasException;
+            this.isAbsent = isAbsent;
+            this.dateAbsStart = dateAbsStart;
+            this.dateAbsEnd = dateAbsEnd;
+            this.dateTimestamp = dateTimestamp;
         }
     }
 
@@ -111,8 +116,7 @@ client.on('messageCreate', async message => {
         let aChannelMembersIds = [];
         
         for (let i = 0; i < argChanGuildUsers.length; i++) {
-            if (true) { // TMP test
-            // if (argChanGuildUsers[i].bot !== true) { 
+            if (argChanGuildUsers[i] !== true) {
                 aChannelMembersIds.push(argChanGuildUsers[i].id);
             }
         }
@@ -131,8 +135,8 @@ client.on('messageCreate', async message => {
     function guildMembersWithAccredArray(argGuildMembers) {
         let aMembersAccredIds = [];
 
-        for (var [keyMap, valueMap] of argGuildMembers) {
-            if (aRoleWhiteList.some(el => valueMap._roles.includes(el))) { //&& (argGuildMembers[i].user.bot !== true)
+        for (let [keyMap, valueMap] of argGuildMembers) {
+            if (aRoleWhiteList.some(el => valueMap._roles.includes(el)) && (valueMap.user.bot !== true)) {
                 aMembersAccredIds.push(keyMap);
             }
         }
@@ -178,8 +182,7 @@ client.on('messageCreate', async message => {
         let aManifestedMembersIds = [];
 
         argChanMessages.forEach((oMessage) => {
-            // if ((oMessage.author.bot !== true) && (aManifestedMembersIds.indexOf(oMessage.author.id) === -1)) {
-            if ((true) && (aManifestedMembersIds.indexOf(oMessage.author.id) === -1)) { // TMP test
+            if ((oMessage.author.bot !== true) && (aManifestedMembersIds.indexOf(oMessage.author.id) === -1)) {
                 aManifestedMembersIds.push(oMessage.author.id);
             }
         });
@@ -224,7 +227,7 @@ client.on('messageCreate', async message => {
 
             if(nStatus === -1) { console.log('break for loop'); break; }
 
-            var fIndex = myGuys.findIndex(x => x.id === myGuy.id);
+            let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
             fIndex === -1 ? myGuys.push(myGuy) : console.error(`object ${myGuy.nickname} already exists `);
         }
 
@@ -248,7 +251,7 @@ client.on('messageCreate', async message => {
      * @returns array of Objects (a - b)
      */
     async function filterManifestedMembers(argA,argB) {
-        
+
         myGuys = await collectGuys(argA);
         let JsonMembers = JSON.stringify(myGuys);
         saveGuy(JsonMembers);
@@ -280,7 +283,7 @@ client.on('messageCreate', async message => {
     function checkAdminOrModo(argChannelUsers, cmdName = "N/A") {
         const cmdLaunchedById = message.author.id;
         const cmdMember = argChannelUsers.find(elUser => elUser.id === cmdLaunchedById);
-        if ((cmdLaunchedById === "134729717550022656") || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
+        if ((cmdLaunchedById === OWNER_ID) || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
             console.log(cmdMember.username + " is bot owner or in staff team " + cmdName)
             return true;
         } else {
@@ -299,9 +302,10 @@ client.on('messageCreate', async message => {
         message.delete(); //await wait(2000);
         const aPresenceC = await filterManifestedMembers(a,b);
         const displayUnmanifested = aPresenceC.map(_x => '<@' + _x.id + '>' );
+        const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les GM: \n";
 
-        logAppendF('Unmanifested IDs: ' + [...displayUnmanifested].join(' - '));
-        message.channel.send('Unmanifested IDs: ' + [...displayUnmanifested].join(' '));
+        logAppendF(strUnmanifested + [...displayUnmanifested].join(' - '));
+        message.channel.send(strUnmanifested + [...displayUnmanifested].join(' '));
         console.log(`\n — Presence command used by ${message.author.username}: \n`);
 
     } else if ((command === 'recap') && (checkAdminOrModo(chanGuildUsers, '!Recap'))) {
