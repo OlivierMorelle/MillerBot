@@ -1,3 +1,5 @@
+//import Guy from './Guy.js';
+
 require("dotenv").config(); //to start process from .env file
 const {Client, Intents}=require("discord.js");
 const fs = require('fs');
@@ -11,26 +13,21 @@ client.once("ready", () => {
 
 
 client.on('messageCreate', async message => {
-    const wait = require('util').promisify(setTimeout);
 
     ///// PRE INITIALISATION \\\\\
     const prefix = "!";
     const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
-    const regexChan = /<#[0-9]{18}>/;
-    const regexUser = /<@[0-9]{18}>/;
-    let msgContent = message.content;
+    const argText = message.content.slice(5);
 
     const guild = await client.guilds.cache.get('238725589379317761'); // guild test
-    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleBlackList = ["666"]; // exception de ping sur ce role
-    const aRoleStaffRcc = ["238728154380763136"]; // exception de ping sur ce role
-    // const aRoleStaffRcc = process.env.ROLE_STAFF; // exception de ping sur ce role
+    const aRoleCondition = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    const aRoleException = ["666"]; // exception de ping sur ce role
 
-    const chan = await message.channel; // default channel is current channel | get option selector TODO
+    let chan = await message.channel; // default channel is current channel | get option selector TODO
     const allGuildMembers = await guild.members.fetch();
     const chanGuildUsers = await chan.members.map(oMembre => oMembre.user); // retourne User information independent of Guilds  (no _roles)
-    const chanMessages = await chan.messages.fetch();
+    const chanMessages = await chan.messages.fetch(); 
 
     const date = new Date();
     const timestamp = date.toGMTString();
@@ -95,7 +92,7 @@ client.on('messageCreate', async message => {
      * @param {*} sortingRole rcc member role by default
      * @returns boolean if a guy has defined role
      */
-    function checkRole(aRoles, sortingRole = aRoleWhiteList[0]) {
+    function checkRole(aRoles, sortingRole = aRoleCondition[0]) {
         return aRoles.includes(sortingRole);
     }
 
@@ -123,16 +120,15 @@ client.on('messageCreate', async message => {
 
 
     /**
-     * Get an all members from the Guild having white-listed role
-     * that are not bots
-     * @param argGuildMembers
-     * @returns {[]} array of members IDs from the Guild
+     * Get all members from the Guild having conditionnalRole
+     * @param allGuildMembers
+     * @returns {[]}
      */
     function guildMembersWithAccredArray(argGuildMembers) {
         let aMembersAccredIds = [];
-
+        console.log(argGuildMembers);
         for (var [keyMap, valueMap] of argGuildMembers) {
-            if (aRoleWhiteList.some(el => valueMap._roles.includes(el))) { //&& (argGuildMembers[i].user.bot !== true)
+            if (aRoleCondition.some(el => valueMap._roles.includes(el))) { //&& (argGuildMembers[i].user.bot !== true)
                 aMembersAccredIds.push(keyMap);
             }
         }
@@ -158,7 +154,7 @@ client.on('messageCreate', async message => {
                 knownName, // string
                 resolvedMember._roles, // array
                 isRccMember, // boolean
-                roleCondition.some(el => resolvedMember._roles.includes(el)), // boolean // If at least one role condition in aRoleWhiteList is included in a member's roles.
+                roleCondition.some(el => resolvedMember._roles.includes(el)), // boolean // If at least one role condition in aRoleCondition is included in a member's roles.
                 roleException.some(el => resolvedMember._roles.includes(el)) // boolean
             );
         });
@@ -205,7 +201,7 @@ client.on('messageCreate', async message => {
     
         for (let i = 0; i < arrIDs.length; i++) {
 
-            myGuy = await getGuildMember(arrIDs[i], aRoleWhiteList, aRoleBlackList).then(resMember => {
+            myGuy = await getGuildMember(arrIDs[i], aRoleCondition, aRoleException).then(resMember => {
 
                 if((resMember.hasCredential === true) && (resMember.hasException !== true)) {
                     countAccredited++;
@@ -243,8 +239,9 @@ client.on('messageCreate', async message => {
 
     /**
      * Mother function using guild.members.fetch("ID") 
-     * @param {*} argA array of strings with id from member in the channel
-     * @param {*} argB array of strings with id having posted a message in the channel
+     * TODO: Evolution on the entry a, with option if is a recap and not presence command,      * 
+     * @param {*} a array of strings with id from member in the channel
+     * @param {*} b array of strings with id having posted a message in the channel
      * @returns array of Objects (a - b)
      */
     async function filterManifestedMembers(argA,argB) {
@@ -265,8 +262,7 @@ client.on('messageCreate', async message => {
         const aOnlyInB = onlyInLeft(argB, argA, isSameUser);
 
         if (aOnlyInB.length !== 0) {
-            console.error(`Error data integrity on manifested IDs: ${aOnlyInB}.\nSome users should not have any message in this channel. Please remove thoses messages and try again.`);
-            logAppendF(`Error data integrity on manifested IDs: ${aOnlyInB}.\nSome users should not have any message in this channel. Please remove thoses messages and try again.`);
+            console.error(`Error data integrity on manifested IDs: ${aOnlyInB}`);
             return null;
         } else {
             let unmafistedGuys;
@@ -276,116 +272,47 @@ client.on('messageCreate', async message => {
     }
 
 
-
-    function checkAdminOrModo(argChannelUsers, cmdName = "N/A") {
+    
+    function checkAdminOrModo(argMembers) {
         const cmdLaunchedById = message.author.id;
-        const cmdMember = argChannelUsers.find(elUser => elUser.id === cmdLaunchedById);
-        if ((cmdLaunchedById === "134729717550022656") || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
-            console.log(cmdMember.username + " is bot owner or in staff team " + cmdName)
+        const cmdMember = argMembers.find(element => element.user.id === cmdLaunchedById);
+        if ((cmdLaunchedById === "134729717550022656") || (roleAdmin.some(elRole => cmdMember._roles.includes(elRole)))) {
+            console.log(cmdMember.user.username + " est dev, modo ou admin a exécuté une commande.")
             return true;
         } else {
-            console.log(cmdMember.username + "does not have proper rights for this command " + cmdName + ", exit.\n=======================================================================================================\n")
+            console.log(cmdMember.user.username + "n'a pas les droits pour cette commande, exit.\n=======================================================================================================\n")
             return false;
         }
     }
-
     ///// POST INITIALISATION \\\\\
-    const a = membersChannelArray(chanGuildUsers);
+    const a = membersChannelArray(chanGuildUsers); // ou membersWithAccredArray(allGuildMembers) // si archive
     const b = manifestedMembersArray(chanMessages);
 
     ///// COMMANDS \\\\\
-    if ((command === 'presence') && (checkAdminOrModo(chanGuildUsers, '!Presence'))) {
+    if (command === 'presence') {
 
         message.delete(); //await wait(2000);
         const aPresenceC = await filterManifestedMembers(a,b);
         const displayUnmanifested = aPresenceC.map(_x => '<@' + _x.id + '>' );
 
+        console.log("\n — Presence command used by TODO : \n");
         logAppendF('Unmanifested IDs: ' + [...displayUnmanifested].join(' - '));
         message.channel.send('Unmanifested IDs: ' + [...displayUnmanifested].join(' '));
-        console.log(`\n — Presence command used by ${message.author.username}: \n`);
 
-    } else if ((command === 'recap') && (checkAdminOrModo(chanGuildUsers, '!Recap'))) {
-
-        message.delete();
-        let inputChannelId = "0";
-        let argTextRecap = msgContent.slice(7);
-        let aRecapA = guildMembersWithAccredArray(allGuildMembers);
-        let messageUsersDist = [];
-        let aRecapSampleB = [];
-
-        if ((argTextRecap === undefined) || (argTextRecap.length < 18)) {
-            console.log("Arg Test Recap is undefined, selecting current channel");
-            aRecapSampleB = b;
-
-        } else if (regexChan.test(argTextRecap)) {
-            inputChannelId = argTextRecap.slice(2, -1);
-            const chanFetched = await client.channels.fetch(inputChannelId);
-            messageUsersDist = await chanFetched.messages.fetch();
-            aRecapSampleB = manifestedMembersArray(messageUsersDist)
-
-        } else {
-            console.log("Regex does not match. Command argument error. Must be a channel.");
-        }
-
-        let aRecapC = await filterManifestedMembers(aRecapA, aRecapSampleB);
-        if (aRecapC !== null) {
-            logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
-            message.channel.send(aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}**\n`).join(''));
-            console.log(`\n — Recap command used by ${message.author.username}: \n`);
-        } else {
-            console.error('aRecapC is null, can\'t execute command');
-            logAppendF('aRecapC is null, can\'t execute command');
-        }
-
-    } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {
+    } else if (command === 'recap') {
 
         message.delete();
+        const aAll = guildMembersWithAccredArray(allGuildMembers)
+        const aRecapC = await filterManifestedMembers(aAll,b);
+        console.log("\n — Recap command used by TODO: \n");
+        logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
+        message.channel.send(aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}**\n`).join(''));
 
-        let inputUserId;
-        let argTextAbs = msgContent.slice(8);
-
-        if (regexUser.test(argTextAbs)) {
-            inputUserId = argTextAbs.slice(2, -1);
-            console.log(inputUserId);
-        } else {
-            console.log("Regex does not match. Command argument error. Must be a channel.");
-        }
-
-    } else if ((command === 'test') && (checkAdminOrModo(chanGuildUsers, '!test'))) {
+    } else if ((command === 'say') && (checkAdminOrModo(chanMembers))) {
 
         message.delete();
+        message.channel.send(argText);
 
-        let inputChannelId = 0;
-        let argTextTest = msgContent.slice(6);
-
-        if (regexUser.test(argTextTest)) {
-            inputChannelId = argTextTest.slice(2, -1);
-            console.log(inputChannelId);
-        } else {
-            console.log("Regex does not match. Command argument error. Must be a User.");
-        }
-
-    } else if ((command === 'say') && (checkAdminOrModo(chanGuildUsers, '!say'))) {
-
-        let argTextSay = msgContent.slice(5);
-        message.delete();
-        message.channel.send(argTextSay);
-
-    } else if ((command === 'clear-for-presence') && (checkAdminOrModo(chanGuildUsers, '!clear-for-presence'))) {
-        let [nMsgToRm] = args;
-        if ((args.length !== 0) && (args[0] < 101)) {
-            await message.channel.bulkDelete(`${nMsgToRm}`)
-                .then(messages => console.log(`Bulk deleted ${messages.size} messages`))
-                .catch(console.error);
-        } else {
-            console.log("La commande !clear-for-presence must have a number (max 100) as argument.")
-            await message.channel.send({
-                content: 'La commande !clear-for-presence must have a number inferior or equal as 100 as argument. Ex: "!clear-for-presence 100',
-                ephemeral: false
-            });
-            await wait(2000);
-            message.delete();
-        }
     }
 
 });
