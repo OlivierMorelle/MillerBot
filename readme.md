@@ -24,6 +24,9 @@ Commands
 
 Roadmap:
 ------------------~~~~
-- !absentOn (@user, startDate)
-- !absentOff (@user, endDate)
-- !absences
+- !absent (@user, false = default)
+> set absent status
+- !absences 
+> list absences
+
++ tests verif data post update

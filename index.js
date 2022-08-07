@@ -1,4 +1,5 @@
 require("dotenv").config(); //to start process from .env file
+
 const {Client, Intents}=require("discord.js");
 const fs = require('fs');
 
@@ -19,6 +20,7 @@ client.on('messageCreate', async message => {
     const command = args.shift().toLowerCase();
     const regexChan = /<#[0-9]{18}>/;
     const regexUser = /<@[0-9]{18}>/;
+    const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
@@ -30,7 +32,7 @@ client.on('messageCreate', async message => {
 
     const chan = await message.channel; // default channel is current channel | get option selector TODO
     const allGuildMembers = await guild.members.fetch();
-    const chanGuildUsers = await chan.members.map(oMembre => oMembre.user); // retourne User information independent of Guilds  (no _roles)
+    const chanGuildUsers = await chan.members.map(oMembre => oMembre.user); // return User information independent of Guilds  (no _roles)
     const chanMessages = await chan.messages.fetch();
 
     const date = new Date();
@@ -42,10 +44,10 @@ client.on('messageCreate', async message => {
     ///// METHODS | FUNCTIONS \\\\\
 
     /**
-     * Guy classe and constructor
+     * Guy class and constructor
      */
     class Guy {
-        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = timestamp) {
+        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
             this.id = id;
             this.nickname = nickname;
             this.roles = roles;
@@ -61,10 +63,11 @@ client.on('messageCreate', async message => {
 
     /**
      * Dump json function
-     * @param {*} jsonData 
+     * @param {*} toJsonData
      */
-    function saveGuy(jsonData) {
-        fs.writeFile("Data/Guys.json", jsonData, function(err, result) {
+    function saveGuy(toJsonData) {
+        let JsonArrayOfObjects = JSON.stringify(toJsonData);
+        fs.writeFile("Data/Guys.json", JsonArrayOfObjects, function(err, result) {
             if (err) {
                 console.log('Error writeFile' . err);
             }
@@ -227,6 +230,8 @@ client.on('messageCreate', async message => {
 
             if(nStatus === -1) { console.log('break for loop'); break; }
 
+            // add Guy
+            // addGuyToArray(myGuy, myGuys);
             let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
             fIndex === -1 ? myGuys.push(myGuy) : console.error(`object ${myGuy.nickname} already exists `);
         }
@@ -244,6 +249,32 @@ client.on('messageCreate', async message => {
 
 
 
+    function findGuy(argUserId) {
+        console.log(dataGuys);
+        return dataGuys.find(x => x.id === argUserId);
+    }
+
+    function updateGuys(argGuyId) {
+        let aNewDataGuys = dataGuys;
+        let fIndex = aNewDataGuys.findIndex(x => x.id === argGuyId.id);
+        aNewDataGuys[fIndex] = argGuyId;
+        saveGuy(aNewDataGuys);
+    }
+
+    function addGuyToArray(argGuy, argGuys) {
+        let fIndex = argGuys.findIndex(x => x.id === argGuy.id);
+        fIndex === -1 ? argGuys.push(argGuy) : console.error(`object ${argGuy.nickname} already exists `);
+    }
+
+    function editAbsent(argUserId, bAbsence) {
+        let foundGuy = findGuy(argUserId)
+        foundGuy.isAbsent = bAbsence;
+
+        updateGuys(foundGuy);
+    }
+
+
+
     /**
      * Mother function using guild.members.fetch("ID") 
      * @param {*} argA array of strings with id from member in the channel
@@ -253,8 +284,7 @@ client.on('messageCreate', async message => {
     async function filterManifestedMembers(argA,argB) {
 
         myGuys = await collectGuys(argA);
-        let JsonMembers = JSON.stringify(myGuys);
-        saveGuy(JsonMembers);
+        saveGuy(myGuys); // TODO ==> if json empty ==> saveGuy
 
         // isSameUser Get items that only occur in the left array,
         // using the compareFunction to determine equality.
@@ -284,7 +314,7 @@ client.on('messageCreate', async message => {
         const cmdLaunchedById = message.author.id;
         const cmdMember = argChannelUsers.find(elUser => elUser.id === cmdLaunchedById);
         if ((cmdLaunchedById === OWNER_ID) || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
-            console.log(cmdMember.username + " is bot owner or in staff team " + cmdName)
+            console.log(cmdMember.username + " executed command and is bot owner or in staff team " + cmdName)
             return true;
         } else {
             console.log(cmdMember.username + "does not have proper rights for this command " + cmdName + ", exit.\n=======================================================================================================\n")
@@ -292,14 +322,33 @@ client.on('messageCreate', async message => {
         }
     }
 
-    ///// POST INITIALISATION \\\\\
-    const a = membersChannelArray(chanGuildUsers);
-    const b = manifestedMembersArray(chanMessages);
+    // KO
+    function initJsonGuys() {
+        saveGuy(collectGuys(a));
+        logAppendF('Initialising members in json file.');
+        console.log('Initialising members in json file.')
+    }
 
+    ///// POST INITIALISATION \\\\\
+    const a = membersChannelArray(chanGuildUsers); // from a channel
+    const aRecapA = guildMembersWithAccredArray(allGuildMembers); // from the Guild
+    const b = manifestedMembersArray(chanMessages);
+    const strRegexError = 'Regex does not match. Command argument error. Must be a channel.';
+
+    // broken if json empty
+    // initJsonGuys();
+/*
+    try {
+        const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
+    } catch (err) {
+        console.log('Error json input: ', err);
+    }
+*/
     ///// COMMANDS \\\\\
     if ((command === 'presence') && (checkAdminOrModo(chanGuildUsers, '!Presence'))) {
+        // compares manifested and unmanifested from current channel
 
-        message.delete(); //await wait(2000);
+        message.delete();
         const aPresenceC = await filterManifestedMembers(a,b);
         const displayUnmanifested = aPresenceC.map(_x => '<@' + _x.id + '>' );
         const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les GM: \n";
@@ -309,11 +358,11 @@ client.on('messageCreate', async message => {
         console.log(`\n — Presence command used by ${message.author.username}: \n`);
 
     } else if ((command === 'recap') && (checkAdminOrModo(chanGuildUsers, '!Recap'))) {
+        // compares manifested and unmanifested from a targeted channel with all white-listed (role) in the Guild.
 
         message.delete();
         let inputChannelId = "0";
         let argTextRecap = msgContent.slice(7);
-        let aRecapA = guildMembersWithAccredArray(allGuildMembers);
         let messageUsersDist = [];
         let aRecapSampleB = [];
 
@@ -328,7 +377,7 @@ client.on('messageCreate', async message => {
             aRecapSampleB = manifestedMembersArray(messageUsersDist)
 
         } else {
-            console.log("Regex does not match. Command argument error. Must be a channel.");
+            console.log(strRegexError);
         }
 
         let aRecapC = await filterManifestedMembers(aRecapA, aRecapSampleB);
@@ -341,33 +390,41 @@ client.on('messageCreate', async message => {
             logAppendF('aRecapC is null, can\'t execute command');
         }
 
+    } else if ((command === 'initguys') && (checkAdminOrModo(chanGuildUsers, '!initguys'))) {
+
+        message.delete();
+        // KO KO KO
+        // initJsonGuys(); TODO
+
     } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {
 
         message.delete();
 
         let inputUserId;
         let argTextAbs = msgContent.slice(8);
+        let arg3 = msgContent.split(' ');
+        let bSetTo = false;
 
-        if (regexUser.test(argTextAbs)) {
+        if ((argTextAbs === undefined) || (argTextAbs.length < 18)) { // !absent <@309658288448995328> on
+            console.log("Arg absent is undefined.");
+        } else if (regexUser.test(argTextAbs)) {
+            /* KO TODO KO
+            if (arg3[2].toUpperCase() === 'ON') {
+                bSetTo = true;
+                console.log('setting absent true');
+            } else {
+                console.error('unknown error at !absent');
+            }*/
             inputUserId = argTextAbs.slice(2, -1);
-            console.log(inputUserId);
+            editAbsent(inputUserId, false);
+            console.log('set ' + findGuy(inputUserId).nickname + 'to absent status to: ' + findGuy(inputUserId).isAbsent);
         } else {
-            console.log("Regex does not match. Command argument error. Must be a channel.");
+            console.log(strRegexError);
         }
 
     } else if ((command === 'test') && (checkAdminOrModo(chanGuildUsers, '!test'))) {
 
         message.delete();
-
-        let inputChannelId = 0;
-        let argTextTest = msgContent.slice(6);
-
-        if (regexUser.test(argTextTest)) {
-            inputChannelId = argTextTest.slice(2, -1);
-            console.log(inputChannelId);
-        } else {
-            console.log("Regex does not match. Command argument error. Must be a User.");
-        }
 
     } else if ((command === 'say') && (checkAdminOrModo(chanGuildUsers, '!say'))) {
 
