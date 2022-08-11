@@ -21,7 +21,10 @@ Commands
 
 - !presence
 - !recap (#channel optionnal parameter)
+> TODO inserer debut du message
+> Bug presence unexpected end of json
 
+> Creer commande liste all white listed
 Roadmap:
 ------------------~~~~
 - !absent (@user, false = default)

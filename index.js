@@ -7,37 +7,41 @@ const client = new Client({intents: [Intents.FLAGS.GUILDS, "GUILDS", "GUILD_MESS
 
 client.once("ready", () => {
     console.log("BOT IS ONLINE");
-})  
+})
 
 
 
 client.on('messageCreate', async message => {
-    const wait = require('util').promisify(setTimeout);
+    const wait = require('util').promisify(setTimeout);        // await wait(500);
 
     ///// PRE INITIALISATION \\\\\
     const prefix = "!";
     const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
-    const regexChan = /<#[0-9]{18}>/;
-    const regexUser = /<@[0-9]{18}>/;
-    const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
+    const regexChan = /<#[0-9]{15,20}>/;
+    const regexUser = /<@[0-9]{15,20}>/;
+    // const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    const guild = await client.guilds.cache.get('238725589379317761'); // guild test
-    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleBlackList = ["666"]; // exception de ping sur ce role
-    const aRoleStaffRcc = ["238728154380763136"]; // exception de ping sur ce role
-    // const aRoleStaffRcc = process.env.ROLE_STAFF; // exception de ping sur ce role
+    const guild = await client.guilds.cache.get('631191166934581249'); // 631191166934581249 // guild test 238725589379317761 //
+    // const guild = await client.guilds.cache.get('238725589379317761'); // 631191166934581249 // guild test 238725589379317761 //
+    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
+    const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
+    const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
 
-    const chan = await message.channel; // default channel is current channel | get option selector TODO
+    //Set absRole listed on recap
+
     const allGuildMembers = await guild.members.fetch();
-    const chanGuildUsers = await chan.members.map(oMembre => oMembre.user); // return User information independent of Guilds  (no _roles)
-    const chanMessages = await chan.messages.fetch();
+    const chan = await message.channel; // default channel is current channel | get option selector TODO
+    const chanGuildUsers = await chan.members.map(oMember => oMember.user); // return User information independent of Guilds  (no _roles)
+    const chanMessages = await chan.messages.fetch();  // stop at 50 msg
 
     const date = new Date();
     const timestamp = date.toGMTString();
-    let myGuys = []; // collectedMembers Members from messages. //
+    let myGuys = [];
+    let myGuysP = [];
 
 
     
@@ -47,17 +51,18 @@ client.on('messageCreate', async message => {
      * Guy class and constructor
      */
     class Guy {
-        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
+        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, lastMessage = "", isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
             this.id = id;
             this.nickname = nickname;
             this.roles = roles;
             this.isRccMember = isRccMember;
             this.hasCredential = hasCredential;
             this.hasException = hasException;
+            this.lastMessage = lastMessage;
             this.isAbsent = isAbsent;
             this.dateAbsStart = dateAbsStart;
             this.dateAbsEnd = dateAbsEnd;
-            this.dateTimestamp = dateTimestamp;
+            this.dateTimestamp = dateTimestamp; //created
         }
     }
 
@@ -110,21 +115,22 @@ client.on('messageCreate', async message => {
 
 
     /**
-     * Get Members from current GuildChannel
+     * Get Members from current channel
      * that are not bots
      * @param argChanGuildUsers GuildChannelManager GuildChannelMembers members of a channel
-     * @returns {[]} array of members IDs from a channel
+     * @returns {[]} array of member IDs from a channel
      */
     function membersChannelArray(argChanGuildUsers) {
         let aChannelMembersIds = [];
         
         for (let i = 0; i < argChanGuildUsers.length; i++) {
-            if (argChanGuildUsers[i] !== true) {
+            if (argChanGuildUsers[i].bot !== true) {
                 aChannelMembersIds.push(argChanGuildUsers[i].id);
             }
         }
 
         return aChannelMembersIds;
+
     }
 
 
@@ -149,26 +155,31 @@ client.on('messageCreate', async message => {
 
 
     /**
-     * @param {*} userId 
-     * @param {*} roleCondition 
-     * @param {*} roleException 
+     * @param {*} userId
+     * @param {*} roleCondition
+     * @param {*} roleException
+     * @param message
      * @returns a new Guy
      */
-    async function getGuildMember(userId, roleCondition, roleException) {
+    async function createGuy(userId, roleCondition, roleException, message = "") {
         let myGuy;
-        myGuy = await getMember(userId).then(resolvedMember => {
-            let knownName = (resolvedMember.nickname != null ? resolvedMember.nickname : resolvedMember.user.username);
-            let isRccMember = checkRole(resolvedMember._roles);
+        myGuy = await getMember(userId)
+            .then(resolvedMember => {
+                let knownName = (resolvedMember.nickname != null ? resolvedMember.nickname : resolvedMember.user.username);
+                let isRccMember = checkRole(resolvedMember._roles);
 
-            return new Guy(
-                resolvedMember.user.id, // string
-                knownName, // string
-                resolvedMember._roles, // array
-                isRccMember, // boolean
-                roleCondition.some(el => resolvedMember._roles.includes(el)), // boolean // If at least one role condition in aRoleWhiteList is included in a member's roles.
-                roleException.some(el => resolvedMember._roles.includes(el)) // boolean
-            );
-        });
+                return new Guy(
+                    resolvedMember.user.id, // string
+                    knownName, // string
+                    resolvedMember._roles, // array
+                    isRccMember, // boolean
+                    roleCondition.some(el => resolvedMember._roles.includes(el)), // boolean // If at least one role condition in aRoleWhiteList is included in a member's roles.
+                    roleException.some(el => resolvedMember._roles.includes(el)) // boolean
+                );
+            })
+            .catch(() => {
+                console.error('Error caught on getMember(' + userId + ')');
+            });
 
         return myGuy;
     }
@@ -193,9 +204,27 @@ client.on('messageCreate', async message => {
         return aManifestedMembersIds;
     }
 
+    /**
+     * Duplicated function with messages
+     * change foreach into for loop key value ? TODO
+     * Get manifested members from Messages Collection [Map]
+     * @param argChanMessages Collection [Map]
+     * @returns {[]} array of messages with unique user
+     */
+    function manifestedMembersMessagesArray(argChanMessages) {
+        let aManifestedMembers = [];
 
+        argChanMessages.forEach((oMessage) => {
+            if ((oMessage.author.bot !== true) && (aManifestedMembers.indexOf(oMessage.author.id) === -1)) {
+                aManifestedMembers.push(oMessage);
+            }
+        });
+
+        return aManifestedMembers;
+    }
 
     /**
+     * Collect or Update
      * Get members from array of IDs (with extra logs)
      * @param {*} arrIDs 
      * @returns array of objects 
@@ -205,13 +234,13 @@ client.on('messageCreate', async message => {
         let countExempted = 0;
         let myGuy;
         let nStatus = 0;
-        let strError = ' :: Erreur dans le lot des membres filtrés, arrêt du traitement. ';
+        let strError = 'Erreur logged :: Erreur dans le lot des membres filtrés, arrêt du traitement. ';
         let strExcluded = ' :: Ce membre est exempté: ';
         let contentLog = '=======\n' + timestamp;
     
         for (let i = 0; i < arrIDs.length; i++) {
 
-            myGuy = await getGuildMember(arrIDs[i], aRoleWhiteList, aRoleBlackList).then(resMember => {
+            myGuy = await createGuy(arrIDs[i], aRoleWhiteList, aRoleBlackList).then(resMember => {
 
                 if((resMember.hasCredential === true) && (resMember.hasException !== true)) {
                     countAccredited++;
@@ -221,7 +250,7 @@ client.on('messageCreate', async message => {
                     logAppendF(contentLog += strExcluded + resMember.nickname + "\n");
                     nStatus = 1;
                 } else {
-                    logAppendF(contentLog = contentLog + strError + 'check this Guy\'s roles: ' + resMember.id + ':' + resMember.nickname);
+                    logAppendF(contentLog = contentLog + strError + '\nError logged :: Check this Guy\'s roles: ' + resMember.id + ':' + resMember.nickname);
                     nStatus = -1; // error
                 }
 
@@ -230,10 +259,9 @@ client.on('messageCreate', async message => {
 
             if(nStatus === -1) { console.log('break for loop'); break; }
 
-            // add Guy
-            // addGuyToArray(myGuy, myGuys);
+            // add Guy if not exist // make a function addGuyToArray(myGuy, myGuys); ?
             let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
-            fIndex === -1 ? myGuys.push(myGuy) : console.error(`object ${myGuy.nickname} already exists `);
+            fIndex === -1 ? myGuys.push(myGuy) : logAppendF(`object ${myGuy.nickname} - Guy already exists `);
         }
 
         if ((countAccredited + countExempted) !== arrIDs.length) {
@@ -242,23 +270,77 @@ client.on('messageCreate', async message => {
         } else {
             contentLog = `Accredités: ${countAccredited} - exemptés: ${countExempted} \nCumul accredités et exemptés = ${countAccredited + countExempted} <==> ${arrIDs.length} messages | Poursuite du traitement.\n-------\n`;
             logAppendF(contentLog);
-
+            saveGuy(myGuys); // TODO ==> if json empty ==> saveGuy
             return myGuys;
         }
     }
 
 
 
+    /**
+     * TODO: Merge function * TMP test duplicated function to insert last message
+     * Collect or Update
+     * Get members and messages from array of messages
+     * @param arrMsg
+     * @returns {Promise<void>}
+     */
+    async function collectMessagesGuys(arrMsg) {
+        let countAccredited = 0;
+        let countExempted = 0;
+        let myGuy;
+        let nStatus = 0;
+        let strError = 'Erreur logged :: Erreur dans le lot des membres filtrés, arrêt du traitement. ';
+        let strExcluded = ' :: Ce membre est exempté: ';
+        let contentLog = '=======\n' + timestamp;
+
+        for (let i = 0; i < arrMsg.length; i++) {
+
+            myGuy = await createGuy(arrMsg[i].author.id, aRoleWhiteList, aRoleBlackList, arrMsg[i].content.slice(0,8)).then(resMember => {
+
+                if((resMember.hasCredential === true) && (resMember.hasException !== true)) {
+                    countAccredited++;
+                    nStatus = 0; // OK
+                } else if (resMember.hasException === true) {
+                    countExempted++; // unauthorized
+                    logAppendF(contentLog += strExcluded + resMember.nickname + "\n");
+                    nStatus = 1;
+                } else {
+                    logAppendF(contentLog = contentLog + strError + '\nError logged :: Check this Guy\'s roles: ' + resMember.id + ':' + resMember.nickname);
+                    nStatus = -1; // error
+                }
+
+                return resMember;
+            });
+
+            if(nStatus === -1) { console.log('break for loop'); break; }
+
+            // add if not exist
+            let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
+            fIndex === -1 ? myGuys.push(myGuy) : logAppendF(`object ${myGuy.nickname} - Guy already exists `);
+
+            // update last message
+            // let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
+
+            if (myGuys[fIndex] !== undefined) {
+                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8) : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
+            } else {
+                console.log("myGuys[fIndex] : " + myGuys[fIndex]);
+            }
+        }
+
+    }
+
+
+
     function findGuy(argUserId) {
-        console.log(dataGuys);
-        return dataGuys.find(x => x.id === argUserId);
+        // return dataGuys.find(x => x.id === argUserId);
     }
 
     function updateGuys(argGuyId) {
-        let aNewDataGuys = dataGuys;
-        let fIndex = aNewDataGuys.findIndex(x => x.id === argGuyId.id);
-        aNewDataGuys[fIndex] = argGuyId;
-        saveGuy(aNewDataGuys);
+        // let aNewDataGuys = dataGuys;
+        // let fIndex = aNewDataGuys.findIndex(x => x.id === argGuyId.id);
+        // aNewDataGuys[fIndex] = argGuyId;
+        // saveGuy(aNewDataGuys);
     }
 
     function addGuyToArray(argGuy, argGuys) {
@@ -274,6 +356,18 @@ client.on('messageCreate', async message => {
     }
 
 
+    /**
+     * sort and return local Guys objects from array of id
+     * @param aInputIDs
+     */
+    function getGuys(aInputIDs) {
+        let aaa;
+        let aTmp;
+        aTmp = myGuys.filter(element => aInputIDs.includes(element.id));
+        aaa = aTmp.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
+        return aaa;
+    }
+
 
     /**
      * Mother function using guild.members.fetch("ID") 
@@ -281,30 +375,31 @@ client.on('messageCreate', async message => {
      * @param {*} argB array of strings with id having posted a message in the channel
      * @returns array of Objects (a - b)
      */
-    async function filterManifestedMembers(argA,argB) {
+    async function filterUnmanifestedMembers(argA,argB) {
 
-        myGuys = await collectGuys(argA);
-        saveGuy(myGuys); // TODO ==> if json empty ==> saveGuy
+        myGuysP = await collectGuys(argA);
 
         // isSameUser Get items that only occur in the left array,
         // using the compareFunction to determine equality.
         // A comparer used to determine if two entries are equal. 
-        const isSameUser = (argA, argB) => argA === argB;
+        const isSameUser = (compA, compB) => compA === compB;
         const onlyInLeft = (left, right, compareFunction) => 
             left.filter(leftValue =>
                 !right.some(rightValue => compareFunction(leftValue, rightValue)));
 
-        const aOnlyInA = onlyInLeft(argA, argB, isSameUser);
-        const aOnlyInB = onlyInLeft(argB, argA, isSameUser);
+        const aOnlyInA = onlyInLeft(argA, argB, isSameUser); // ==> unmanifested
+        const aOnlyInB = onlyInLeft(argB, argA, isSameUser); // ==> data integrity error if not empty
 
         if (aOnlyInB.length !== 0) {
             console.error(`Error data integrity on manifested IDs: ${aOnlyInB}.\nSome users should not have any message in this channel. Please remove thoses messages and try again.`);
             logAppendF(`Error data integrity on manifested IDs: ${aOnlyInB}.\nSome users should not have any message in this channel. Please remove thoses messages and try again.`);
             return null;
         } else {
-            let unmafistedGuys;
-            unmafistedGuys = myGuys.filter(element => aOnlyInA.includes(element.id));
-            return unmafistedGuys.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
+            let unmafifGuys;
+            unmafifGuys = myGuysP.filter(element => aOnlyInA.includes(element.id));
+            return unmafifGuys.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
+
+            // return getGuys(aOnlyInA);
         }
     }
 
@@ -329,11 +424,14 @@ client.on('messageCreate', async message => {
         console.log('Initialising members in json file.')
     }
 
+
+
     ///// POST INITIALISATION \\\\\
-    const a = membersChannelArray(chanGuildUsers); // from a channel
-    const aRecapA = guildMembersWithAccredArray(allGuildMembers); // from the Guild
-    const b = manifestedMembersArray(chanMessages);
+    const ALL_GuildMembers_A = guildMembersWithAccredArray(allGuildMembers); // users with accred from the Guild
+    const a = membersChannelArray(chanGuildUsers); // only from current channel
+    const b = manifestedMembersArray(chanMessages); // only from current channel
     const strRegexError = 'Regex does not match. Command argument error. Must be a channel.';
+    myGuys = await collectGuys(ALL_GuildMembers_A); // init Guy objects
 
     // broken if json empty
     // initJsonGuys();
@@ -344,14 +442,18 @@ client.on('messageCreate', async message => {
         console.log('Error json input: ', err);
     }
 */
+
+
+
     ///// COMMANDS \\\\\
     if ((command === 'presence') && (checkAdminOrModo(chanGuildUsers, '!Presence'))) {
         // compares manifested and unmanifested from current channel
 
         message.delete();
-        const aPresenceC = await filterManifestedMembers(a,b);
+
+        const aPresenceC = await filterUnmanifestedMembers(a,b);
         const displayUnmanifested = aPresenceC.map(_x => '<@' + _x.id + '>' );
-        const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les GM: \n";
+        const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les game masters: \n";
 
         logAppendF(strUnmanifested + [...displayUnmanifested].join(' - '));
         message.channel.send(strUnmanifested + [...displayUnmanifested].join(' '));
@@ -363,28 +465,42 @@ client.on('messageCreate', async message => {
         message.delete();
         let inputChannelId = "0";
         let argTextRecap = msgContent.slice(7);
-        let messageUsersDist = [];
-        let aRecapSampleB = [];
+        let aManifested_B = [];
+        let chanMessageDist = [];
+        let aManifestedIDs_B = [];
 
         if ((argTextRecap === undefined) || (argTextRecap.length < 18)) {
+
+            inputChannelId = message.channel.id;
+            let aOneMsgMember_B = manifestedMembersMessagesArray(chanMessages);
+            await collectMessagesGuys(aOneMsgMember_B); // udpate lastMessage
+            aManifestedIDs_B = manifestedMembersArray(chanMessages)
+            aManifested_B = getGuys(aManifestedIDs_B);
             console.log("Arg Test Recap is undefined, selecting current channel");
-            aRecapSampleB = b;
 
         } else if (regexChan.test(argTextRecap)) {
             inputChannelId = argTextRecap.slice(2, -1);
-            const chanFetched = await client.channels.fetch(inputChannelId);
-            messageUsersDist = await chanFetched.messages.fetch();
-            aRecapSampleB = manifestedMembersArray(messageUsersDist)
+            console.log('recap target channel: ' + inputChannelId);
+
+            let chanFetched = await client.channels.fetch(inputChannelId);
+            chanMessageDist = await chanFetched.messages.fetch();
+
+            let aOneMsgMembers_B = manifestedMembersMessagesArray(chanMessageDist);
+            await collectMessagesGuys(aOneMsgMembers_B); // udpate lastMessage
+
+            aManifestedIDs_B = manifestedMembersArray(chanMessageDist);
+            aManifested_B = getGuys(aManifestedIDs_B);
 
         } else {
             console.log(strRegexError);
         }
 
-        let aRecapC = await filterManifestedMembers(aRecapA, aRecapSampleB);
+        let aRecapC = await filterUnmanifestedMembers(ALL_GuildMembers_A, aManifestedIDs_B);
         if (aRecapC !== null) {
             logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
-            message.channel.send(aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}**\n`).join(''));
-            console.log(`\n — Recap command used by ${message.author.username}: \n`);
+            message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** *${_x.lastMessage}*\n`).join(''));
+            message.channel.send('__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}**\n`).join(''));
+            console.log(`\n — Recap command used by ${message.author.username}: \n :`);
         } else {
             console.error('aRecapC is null, can\'t execute command');
             logAppendF('aRecapC is null, can\'t execute command');
@@ -433,6 +549,8 @@ client.on('messageCreate', async message => {
         message.channel.send(argTextSay);
 
     } else if ((command === 'clear-for-presence') && (checkAdminOrModo(chanGuildUsers, '!clear-for-presence'))) {
+        message.delete();
+
         let [nMsgToRm] = args;
         if ((args.length !== 0) && (args[0] < 101)) {
             await message.channel.bulkDelete(`${nMsgToRm}`)
@@ -444,8 +562,6 @@ client.on('messageCreate', async message => {
                 content: 'La commande !clear-for-presence must have a number inferior or equal as 100 as argument. Ex: "!clear-for-presence 100',
                 ephemeral: false
             });
-            await wait(2000);
-            message.delete();
         }
     }
 
