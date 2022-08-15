@@ -24,10 +24,10 @@ client.on('messageCreate', async message => {
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    const guild = await client.guilds.cache.get('631191166934581249'); // 631191166934581249 // guild test 238725589379317761 //
-    // const guild = await client.guilds.cache.get('238725589379317761'); // 631191166934581249 // guild test 238725589379317761 //
-    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
+    // const guild = await client.guilds.cache.get('631191166934581249'); // 631191166934581249 // guild test 238725589379317761 //
+    const guild = await client.guilds.cache.get('238725589379317761'); // 631191166934581249 // guild test 238725589379317761 //
+    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    // const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
     const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
     const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
 
@@ -322,7 +322,7 @@ client.on('messageCreate', async message => {
             // let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
 
             if (myGuys[fIndex] !== undefined) {
-                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8) : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
+                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_]/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
             } else {
                 console.log("myGuys[fIndex] : " + myGuys[fIndex]);
             }
@@ -498,7 +498,7 @@ client.on('messageCreate', async message => {
         let aRecapC = await filterUnmanifestedMembers(ALL_GuildMembers_A, aManifestedIDs_B);
         if (aRecapC !== null) {
             logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
-            message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** *${_x.lastMessage}*\n`).join(''));
+            message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** _${_x.lastMessage}_\n`).join(''));
             message.channel.send('__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}**\n`).join(''));
             console.log(`\n — Recap command used by ${message.author.username}: \n :`);
         } else {
