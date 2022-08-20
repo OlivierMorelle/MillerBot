@@ -24,14 +24,14 @@ client.on('messageCreate', async message => {
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    // const guild = await client.guilds.cache.get('631191166934581249'); // 631191166934581249 // guild test 238725589379317761 //
-    const guild = await client.guilds.cache.get('238725589379317761'); // 631191166934581249 // guild test 238725589379317761 //
-    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    // const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
+    const guild = await client.guilds.cache.get('631191166934581249'); // 631191166934581249 // guild test 238725589379317761 //
+    // const guild = await client.guilds.cache.get('238725589379317761'); // 631191166934581249 // guild test 238725589379317761 //
+    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
     const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
     const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
 
-    //Set absRole listed on recap
+    // Set absRole listed on recap
 
     const allGuildMembers = await guild.members.fetch();
     const chan = await message.channel; // default channel is current channel | get option selector TODO
@@ -41,7 +41,7 @@ client.on('messageCreate', async message => {
     const date = new Date();
     const timestamp = date.toGMTString();
     let myGuys = [];
-    let myGuysP = [];
+    let myTmpGuys = [];
 
 
     
@@ -361,11 +361,9 @@ client.on('messageCreate', async message => {
      * @param aInputIDs
      */
     function getGuys(aInputIDs) {
-        let aaa;
         let aTmp;
         aTmp = myGuys.filter(element => aInputIDs.includes(element.id));
-        aaa = aTmp.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
-        return aaa;
+        return aTmp.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
     }
 
 
@@ -377,7 +375,7 @@ client.on('messageCreate', async message => {
      */
     async function filterUnmanifestedMembers(argA,argB) {
 
-        myGuysP = await collectGuys(argA);
+        myTmpGuys = await collectGuys(argA);
 
         // isSameUser Get items that only occur in the left array,
         // using the compareFunction to determine equality.
@@ -387,8 +385,8 @@ client.on('messageCreate', async message => {
             left.filter(leftValue =>
                 !right.some(rightValue => compareFunction(leftValue, rightValue)));
 
-        const aOnlyInA = onlyInLeft(argA, argB, isSameUser); // ==> unmanifested
-        const aOnlyInB = onlyInLeft(argB, argA, isSameUser); // ==> data integrity error if not empty
+        const aOnlyInA = onlyInLeft(argA, argB, isSameUser); // ==> unmanifested (IDs)
+        const aOnlyInB = onlyInLeft(argB, argA, isSameUser); // ==> data integrity error if not empty (IDs)
 
         if (aOnlyInB.length !== 0) {
             console.error(`Error data integrity on manifested IDs: ${aOnlyInB}.\nSome users should not have any message in this channel. Please remove thoses messages and try again.`);
@@ -396,10 +394,8 @@ client.on('messageCreate', async message => {
             return null;
         } else {
             let unmafifGuys;
-            unmafifGuys = myGuysP.filter(element => aOnlyInA.includes(element.id));
+            unmafifGuys = myTmpGuys.filter(element => aOnlyInA.includes(element.id)); // get Guys Object from ID array
             return unmafifGuys.sort((argA, argB) => { return argB.isRccMember - argA.isRccMember; });
-
-            // return getGuys(aOnlyInA);
         }
     }
 
