@@ -322,7 +322,7 @@ client.on('messageCreate', async message => {
             // let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
 
             if (myGuys[fIndex] !== undefined) {
-                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_]/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
+                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_@]|(http)/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
             } else {
                 console.log("myGuys[fIndex] : " + myGuys[fIndex]);
             }
