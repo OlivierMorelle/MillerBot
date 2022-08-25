@@ -570,7 +570,7 @@ client.on('messageCreate', async message => {
         if (aRecapC !== null) {
             logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
             message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** _${_x.lastMessage}_\n`).join(''));
-            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*absent jusqu\'au ' + _x.dateAbsEnd + '*' : '' }\n`).join('');
+            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*absent jusqu\'au ' + _x.dateAbsEnd + '*' : '' }\n`).join(''); // TODO if null show "undertimed"
             message.channel.send(txtRecapNonManif);
             console.log(`\n — Recap command used by ${message.author.username}. \n`);
         } else {
@@ -580,10 +580,11 @@ client.on('messageCreate', async message => {
 
     } else if ((command === 'initguys') && (checkAdminOrModo(chanGuildUsers, '!initguys'))) {
 
+        // TODO do tests for empty json
         message.delete();
         initJsonGuys();
 
-    } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {  // Ex: !absent <@309658288448995328> on
+    } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {  // Ex: !absent <@xx58288448995328> on
 
         message.delete();
 
