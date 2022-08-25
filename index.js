@@ -19,15 +19,15 @@ client.on('messageCreate', async message => {
     const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
     const regexChan = /<#[0-9]{15,20}>/;
-    const regexUser = /<@[0-9]{15,20}>/;
-    // const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
+    const regexUser = /<@[0-9]{16,20}>/;
+    const regexDate = /(?:(?:31(\/)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})/;
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    const guild = await client.guilds.cache.get('631191166934581249');
-    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
-    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
+    // const guild = await client.guilds.cache.get('631191166934581249');
+    const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
+    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    // const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
     const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
     const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
 
@@ -38,10 +38,18 @@ client.on('messageCreate', async message => {
     const chanGuildUsers = await chan.members.map(oMember => oMember.user); // return User information independent of Guilds (no _roles)
     const chanMessages = await chan.messages.fetch();  // limited at 50 messages
 
-    const date = new Date();
-    const timestamp = date.toGMTString();
-    let myGuys = [];
-    let myTmpGuys = [];
+    let date = Date.now(); // const timestamp = date.toGMTString();
+
+    try {
+        JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
+    }
+    catch (e) {
+        console.error(`The JSON is invalid, ${e} has some further information.`);
+    }
+    let myGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
+    // let myGuys = await collectGuys(ALL_GuildMembers_A); // init Guy objects
+    let myTmpGuys = []; // not saved in json. Opti for !presence cmd
+    // console.log(myGuys);
 
 
 
@@ -51,7 +59,7 @@ client.on('messageCreate', async message => {
      * Guy class and constructor
      */
     class Guy {
-        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, lastMessage = "", isAbsent = false, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
+        constructor (id, nickname, roles, isRccMember, hasCredential, hasException, lastMessage = "", isAbsent = null, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
             this.id = id;
             this.nickname = nickname;
             this.roles = roles;
@@ -62,7 +70,7 @@ client.on('messageCreate', async message => {
             this.isAbsent = isAbsent;
             this.dateAbsStart = dateAbsStart;
             this.dateAbsEnd = dateAbsEnd;
-            this.dateTimestamp = dateTimestamp; //created
+            this.dateTimestamp = dateTimestamp; // created
         }
     }
 
@@ -70,7 +78,7 @@ client.on('messageCreate', async message => {
      * Dump json function
      * @param {*} toJsonData
      */
-    function saveGuy(toJsonData) {
+    function saveGuys(toJsonData) {
         let JsonArrayOfObjects = JSON.stringify(toJsonData);
         fs.writeFile("Data/Guys.json", JsonArrayOfObjects, function(err, result) {
             if (err) {
@@ -236,7 +244,7 @@ client.on('messageCreate', async message => {
         let nStatus = 0;
         let strError = 'Erreur logged :: Erreur dans le lot des membres filtrés, arrêt du traitement. ';
         let strExcluded = ' :: Ce membre est exempté: ';
-        let contentLog = '=======\n' + timestamp;
+        let contentLog = '=======\n' + date;
 
         for (let i = 0; i < arrIDs.length; i++) {
 
@@ -257,11 +265,11 @@ client.on('messageCreate', async message => {
                 return resMember;
             });
 
-            if(nStatus === -1) { console.log('break for loop'); break; }
-
-            // add Guy if not exist // make a function addGuyToArray(myGuy, myGuys); ?
-            let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
-            fIndex === -1 ? myGuys.push(myGuy) : logAppendF(`object ${myGuy.nickname} - Guy already exists `);
+            if (nStatus === -1) {
+                console.log('Break For loop.'); break;
+            } else {
+                addGuyIfNotExist(myGuy, myGuys);
+            }
         }
 
         if ((countAccredited + countExempted) !== arrIDs.length) {
@@ -270,7 +278,7 @@ client.on('messageCreate', async message => {
         } else {
             contentLog = `Accredités: ${countAccredited} - exemptés: ${countExempted} \nCumul accredités et exemptés = ${countAccredited + countExempted} <==> ${arrIDs.length} messages | Poursuite du traitement.\n-------\n`;
             logAppendF(contentLog);
-            saveGuy(myGuys); // TODO ==> if json empty ==> saveGuy
+            saveGuys(myGuys);
             return myGuys;
         }
     }
@@ -291,7 +299,7 @@ client.on('messageCreate', async message => {
         let nStatus = 0;
         let strError = 'Erreur logged :: Erreur dans le lot des membres filtrés, arrêt du traitement. ';
         let strExcluded = ' :: Ce membre est exempté: ';
-        let contentLog = '=======\n' + timestamp;
+        let contentLog = '=======\n' + date;
 
         for (let i = 0; i < arrMsg.length; i++) {
 
@@ -314,45 +322,86 @@ client.on('messageCreate', async message => {
 
             if(nStatus === -1) { console.log('break for loop'); break; }
 
-            // add if not exist
-            let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
-            fIndex === -1 ? myGuys.push(myGuy) : logAppendF(`object ${myGuy.nickname} - Guy already exists `);
+            addGuyIfNotExist(myGuy, myGuys);
 
             // update last message
-            // let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
-
+            let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
             if (myGuys[fIndex] !== undefined) {
-                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_@]|(http)/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
+                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_@!]|(http)/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
             } else {
                 console.log("myGuys[fIndex] : " + myGuys[fIndex]);
             }
         }
-
+        saveGuys(myGuys);
     }
 
 
+
+    function addGuyIfNotExist(argGuy, argGuys) {
+        let fIndex = argGuys.findIndex(x => x.id === argGuy.id);
+        fIndex === -1 ? argGuys.push(argGuy) : logAppendF(`object ${argGuy.nickname} - Guy already exists `);
+    }
 
     function findGuy(argUserId) {
-        // return dataGuys.find(x => x.id === argUserId);
+        return myGuys.find(x => x.id === argUserId);
     }
 
-    function updateGuys(argGuyId) {
-        // let aNewDataGuys = dataGuys;
-        // let fIndex = aNewDataGuys.findIndex(x => x.id === argGuyId.id);
-        // aNewDataGuys[fIndex] = argGuyId;
-        // saveGuy(aNewDataGuys);
+    function updateGuy(argGuy, data = myGuys) {
+        let aUpdatedGuys = data;
+        let fIndex = aUpdatedGuys.findIndex(x => x.id === argGuy.id);
+        aUpdatedGuys[fIndex] = argGuy;
+        saveGuys(aUpdatedGuys);
     }
 
-    function addGuyToArray(argGuy, argGuys) {
-        let fIndex = argGuys.findIndex(x => x.id === argGuy.id);
-        fIndex === -1 ? argGuys.push(argGuy) : console.error(`object ${argGuy.nickname} already exists `);
+    /*
+    function updateGuys(argGuys, data = myGuys) {
+        let aUpdatingGuys = data;
+        for (let i = 0; i < argGuys.length; i++) {
+            let fIndex = aUpdatingGuys.findIndex(x => x.id === argGuys[i].id);
+            aUpdatingGuys[fIndex] = argGuys[i];
+        }
+        saveGuys(aUpdatingGuys);
+    }
+     */
+
+    function editAbsent(argUserId, bAbsence, dateEnd = null) {
+        let foundGuy = findGuy(argUserId);
+        if (foundGuy !== undefined) {
+            foundGuy.isAbsent = bAbsence;
+            foundGuy.dateAbsStart = date;
+            foundGuy.dateAbsEnd = dateEnd;
+            updateGuy(foundGuy);
+        } else {
+            console.error("Error: can't find user.")
+        }
     }
 
-    function editAbsent(argUserId, bAbsence) {
-        let foundGuy = findGuy(argUserId)
-        foundGuy.isAbsent = bAbsence;
+    /**
+     * Refresh and update absences before listing
+     * @param absGuys
+     */
+    function checkAbsences(absGuys) {
 
-        updateGuys(foundGuy);
+        for (let i = 0; i < absGuys.length; i++) {
+            let aDateInput = absGuys[i].dateAbsEnd.split("/");
+            let formatDate = aDateInput[1] + "/" + aDateInput[0] + "/" + aDateInput[2];
+            let newDateEnd = new Date(formatDate).getTime();
+
+            if (newDateEnd < date) {
+                absGuys[i].isAbsent = false;
+                absGuys[i].dateAbsEnd = null;
+                updateGuy(absGuys[i]);
+                console.log("Fin d'absence.")
+            } else {
+                console.log("Absence toujours en cours.")
+            }
+        }
+    }
+
+    function listAbsences() {
+        let absGuys = myGuys.filter(x => x.isAbsent === true);
+        checkAbsences(absGuys);
+        return absGuys.map((_x, index) => `${index+1}. **${_x.nickname}** ==> ${_x.dateAbsEnd}\n`).join('');
     }
 
 
@@ -366,8 +415,8 @@ client.on('messageCreate', async message => {
         let aTmp;
         aTmp = arrayF.filter(element => aInputIDs.includes(element.id));
         aTmp.sort(function(elA, elB) {
-            let nameA = elA.nickname.toUpperCase(); // ignore upper and lowercase
-            let nameB = elB.nickname.toUpperCase(); // ignore upper and lowercase
+            let nameA = elA.nickname.toUpperCase();
+            let nameB = elB.nickname.toUpperCase();
             if (nameA < nameB) {
                 return -1; //nameA comes first
             }
@@ -412,22 +461,38 @@ client.on('messageCreate', async message => {
     }
 
 
-
+    /**
+     * @param argChannelUsers
+     * @param cmdName
+     * @returns {boolean}
+     */
     function checkAdminOrModo(argChannelUsers, cmdName = "N/A") {
         const cmdLaunchedById = message.author.id;
         const cmdMember = argChannelUsers.find(elUser => elUser.id === cmdLaunchedById);
-        if ((cmdLaunchedById === OWNER_ID) || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
-            console.log(cmdMember.username + " executed command and is bot owner or in staff team " + cmdName)
-            return true;
-        } else {
-            console.log(cmdMember.username + "does not have proper rights for this command " + cmdName + ", exit.\n=======================================================================================================\n")
-            return false;
-        }
+        // if (cmdMember !== undefined) {
+            if ((cmdLaunchedById === OWNER_ID) || (aRoleStaffRcc.some(elRole => cmdMember._roles.includes(elRole)))) {
+                console.log(cmdMember.username + " executed command and is bot owner or in staff team " + cmdName)
+                return true;
+            } else {
+                console.log(cmdMember.username + "does not have proper rights for this command " + cmdName + ", exit.\n=======================================================================================================\n")
+                return false;
+            }
+        // } else {
+        //     console.error("non habilité à utiliser cette commande.");
+        // }
     }
 
-    // KO
+
+    /**
+     * initJsonGuys
+     */
     function initJsonGuys() {
-        saveGuy(collectGuys(a));
+        let initGuys = [];
+        let Guy1 = new Guy(11111111111111111,"nick1",["22222222222222221"], true, true, false, "abs");
+        let Guy2 = new Guy(11111111111111112,"nick2",["22222222222222221"], true, true, false, "abs");
+        initGuys.push(Guy1, Guy2);
+        saveGuys(initGuys);
+
         logAppendF('Initialising members in json file.');
         console.log('Initialising members in json file.')
     }
@@ -438,11 +503,9 @@ client.on('messageCreate', async message => {
     const ALL_GuildMembers_A = guildMembersWithAccredArray(allGuildMembers); // users with accred from the Guild
     const a = membersChannelArray(chanGuildUsers); // only from current channel
     const b = manifestedMembersArray(chanMessages); // only from current channel
-    const strRegexError = 'Regex does not match. Command argument error. Must be a channel.';
-    myGuys = await collectGuys(ALL_GuildMembers_A); // init Guy objects
+    const strRegexError = 'Regex does not match. Command argument error.';
 
-    // broken if json empty
-    // initJsonGuys();
+
 /*
     try {
         const dataGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
@@ -481,7 +544,7 @@ client.on('messageCreate', async message => {
 
             inputChannelId = message.channel.id;
             let aOneMsgMember_B = manifestedMembersMessagesArray(chanMessages);
-            await collectMessagesGuys(aOneMsgMember_B); // udpate lastMessage
+            await collectMessagesGuys(aOneMsgMember_B); // update lastMessage
             aManifestedIDs_B = manifestedMembersArray(chanMessages)
             aManifested_B = getGuys(aManifestedIDs_B);
             console.log("Arg Test Recap is undefined, selecting current channel");
@@ -494,12 +557,12 @@ client.on('messageCreate', async message => {
             chanMessageDist = await chanFetched.messages.fetch();
 
             let aOneMsgMembers_B = manifestedMembersMessagesArray(chanMessageDist);
-            await collectMessagesGuys(aOneMsgMembers_B); // udpate lastMessage
+            await collectMessagesGuys(aOneMsgMembers_B); // update lastMessage
 
             aManifestedIDs_B = manifestedMembersArray(chanMessageDist);
             aManifested_B = getGuys(aManifestedIDs_B);
         } else {
-            console.log(strRegexError);
+            console.log(strRegexError + " Must be a channel.");
         }
 
         let aRecapC = await filterUnmanifestedMembers(ALL_GuildMembers_A, aManifestedIDs_B);
@@ -516,34 +579,46 @@ client.on('messageCreate', async message => {
     } else if ((command === 'initguys') && (checkAdminOrModo(chanGuildUsers, '!initguys'))) {
 
         message.delete();
-        // KO KO KO
-        // initJsonGuys(); TODO
+        // KO KO KO TODO
+        initJsonGuys();
 
-    } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {
+    } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {  // Ex: !absent <@309658288448995328> on
 
         message.delete();
 
-        let inputUserId;
         let argTextAbs = msgContent.slice(8);
         let arg3 = msgContent.split(' ');
-        let bSetTo = false;
+        let inputUserId = arg3[1].slice(2, -1);
 
-        if ((argTextAbs === undefined) || (argTextAbs.length < 18)) { // !absent <@309658288448995328> on
+        if ((argTextAbs === undefined) || (argTextAbs.length < 18)) {
             console.log("Arg absent is undefined.");
-        } else if (regexUser.test(argTextAbs)) {
-            /* KO TODO KO
-            if (arg3[2].toUpperCase() === 'ON') {
-                bSetTo = true;
-                console.log('setting absent true');
+        } else if ((regexUser.test(argTextAbs)) && (arg3[2]) !== undefined) {
+
+            if (arg3[2].toUpperCase() === 'OFF') {
+                editAbsent(inputUserId, false);
+                console.log('editing absent to false');
+            } else if (arg3[2].toUpperCase() === 'ON') {
+                if (regexDate.test(arg3[3])) {
+                    editAbsent(inputUserId, true, arg3[3]);
+                } else {
+                    editAbsent(inputUserId, true);
+                }
+                console.log('editing absent to true');
             } else {
-                console.error('unknown error at !absent');
-            }*/
-            inputUserId = argTextAbs.slice(2, -1);
-            editAbsent(inputUserId, false);
-            console.log('set ' + findGuy(inputUserId).nickname + 'to absent status to: ' + findGuy(inputUserId).isAbsent);
+                console.error('Error arg3[2] with !absent command. Unknown parameter, must be ON or OFF.');
+            }
+
+            console.log('set ' + findGuy(inputUserId).nickname + ' absent status: ' + findGuy(inputUserId).isAbsent);
+
         } else {
-            console.log(strRegexError);
+            console.log(strRegexError + " Must be @Member + On/Off");
         }
+
+    } else if ((command === 'absences') && (checkAdminOrModo(chanGuildUsers, '!absences'))) {
+
+        message.delete();
+        console.log(listAbsences());
+        // message.channel.send(listAbsences());
 
     } else if ((command === 'test') && (checkAdminOrModo(chanGuildUsers, '!test'))) {
 
