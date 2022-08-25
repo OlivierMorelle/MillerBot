@@ -24,14 +24,12 @@ client.on('messageCreate', async message => {
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    // const guild = await client.guilds.cache.get('631191166934581249');
-    const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
-    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    // const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
+    const guild = await client.guilds.cache.get('631191166934581249');
+    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
+    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
     const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
     const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
-
-    // Set absRole listed on recap
 
     const allGuildMembers = await guild.members.fetch();
     const chan = await message.channel; // current channel as default
@@ -383,17 +381,19 @@ client.on('messageCreate', async message => {
     function checkAbsences(absGuys) {
 
         for (let i = 0; i < absGuys.length; i++) {
-            let aDateInput = absGuys[i].dateAbsEnd.split("/");
-            let formatDate = aDateInput[1] + "/" + aDateInput[0] + "/" + aDateInput[2];
-            let newDateEnd = new Date(formatDate).getTime();
+            if (regexDate.test(absGuys[i].dateAbsEnd)) {
+                let aDateInput = absGuys[i].dateAbsEnd.split("/");
+                let formatDate = aDateInput[1] + "/" + aDateInput[0] + "/" + aDateInput[2];
+                let newDateEnd = new Date(formatDate).getTime();
 
-            if (newDateEnd < date) {
-                absGuys[i].isAbsent = false;
-                absGuys[i].dateAbsEnd = null;
-                updateGuy(absGuys[i]);
-                console.log("Fin d'absence.")
-            } else {
+                if (newDateEnd < date) {
+                    absGuys[i].isAbsent = false;
+                    absGuys[i].dateAbsEnd = null;
+                    updateGuy(absGuys[i]);
+                    console.log('Fin d\'absence de ' + absGuys[i].nickname)
+                } /*else {
                 console.log("Absence toujours en cours.")
+            }*/
             }
         }
     }
@@ -488,9 +488,8 @@ client.on('messageCreate', async message => {
      */
     function initJsonGuys() {
         let initGuys = [];
-        let Guy1 = new Guy(11111111111111111,"nick1",["22222222222222221"], true, true, false, "abs");
-        let Guy2 = new Guy(11111111111111112,"nick2",["22222222222222221"], true, true, false, "abs");
-        initGuys.push(Guy1, Guy2);
+        let initGuy = new Guy(11111111111111111,"nickname",["22222222222222221"], false, false, false, "init");
+        initGuys.push(initGuy);
         saveGuys(initGuys);
 
         logAppendF('Initialising members in json file.');
@@ -523,11 +522,13 @@ client.on('messageCreate', async message => {
         message.delete();
 
         const aPresenceC = await filterUnmanifestedMembers(a,b);
-        const displayUnmanifested = aPresenceC.map(_x => '<@' + _x.id + '>' );
+        const displayUnmanifested = aPresenceC.map(_x => `${_x.isAbsent ? '' : '<@' + _x.id + '>'}`);
         const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les game masters: \n";
 
         logAppendF(strUnmanifested + [...displayUnmanifested].join(' - '));
         message.channel.send(strUnmanifested + [...displayUnmanifested].join(' '));
+        // TODO ajouter condition si displayUnmanifested empty tout le monde s'est manifeté.
+
         console.log(`\n — Presence command used by ${message.author.username}. \n`);
 
     } else if ((command === 'recap') && (checkAdminOrModo(chanGuildUsers, '!Recap'))) {
@@ -569,7 +570,7 @@ client.on('messageCreate', async message => {
         if (aRecapC !== null) {
             logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
             message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** _${_x.lastMessage}_\n`).join(''));
-            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*(absent jusqu\'au ' + _x.dateAbsEnd + ')*' : "" }\n`).join('');
+            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*absent jusqu\'au ' + _x.dateAbsEnd + '*' : '' }\n`).join('');
             message.channel.send(txtRecapNonManif);
             console.log(`\n — Recap command used by ${message.author.username}. \n`);
         } else {
@@ -580,7 +581,6 @@ client.on('messageCreate', async message => {
     } else if ((command === 'initguys') && (checkAdminOrModo(chanGuildUsers, '!initguys'))) {
 
         message.delete();
-        // KO KO KO TODO
         initJsonGuys();
 
     } else if ((command === 'absent') && (checkAdminOrModo(chanGuildUsers, '!absent'))) {  // Ex: !absent <@309658288448995328> on
@@ -618,8 +618,7 @@ client.on('messageCreate', async message => {
     } else if ((command === 'absences') && (checkAdminOrModo(chanGuildUsers, '!absences'))) {
 
         message.delete();
-        console.log(listAbsences());
-        message.channel.send(listAbsences());
+        message.channel.send('__Liste des absences enregistrées:__ \n' + listAbsences());
 
     } else if ((command === 'test') && (checkAdminOrModo(chanGuildUsers, '!test'))) {
 
