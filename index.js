@@ -301,7 +301,7 @@ client.on('messageCreate', async message => {
 
         for (let i = 0; i < arrMsg.length; i++) {
 
-            myGuy = await createGuy(arrMsg[i].author.id, aRoleWhiteList, aRoleBlackList, arrMsg[i].content.slice(0,8)).then(resMember => {
+            myGuy = await createGuy(arrMsg[i].author.id, aRoleWhiteList, aRoleBlackList, msgFormat(arrMsg[i].content)).then(resMember => {
 
                 if((resMember.hasCredential === true) && (resMember.hasException !== true)) {
                     countAccredited++;
@@ -324,8 +324,9 @@ client.on('messageCreate', async message => {
 
             // update last message
             let fIndex = myGuys.findIndex(x => x.id === myGuy.id);
+            let tmpLastMsg = msgFormat(arrMsg[i].content);
             if (myGuys[fIndex] !== undefined) {
-                myGuys[fIndex].lastMessage !== arrMsg[i].content.slice(0,8) ? myGuys[fIndex].lastMessage = arrMsg[i].content.slice(0,8).replace(/[*_@!]|(http)/g, '') : logAppendF(`is same message \"${arrMsg[i].content.slice(0,8)}\" already in. `);
+                myGuys[fIndex].lastMessage !== tmpLastMsg ? myGuys[fIndex].lastMessage = tmpLastMsg : logAppendF(`is same message \"${tmpLastMsg}\" already in. `);
             } else {
                 console.log("myGuys[fIndex] : " + myGuys[fIndex]);
             }
@@ -494,6 +495,14 @@ client.on('messageCreate', async message => {
 
         logAppendF('Initialising members in json file.');
         console.log('Initialising members in json file.')
+    }
+
+    /**
+     * @param stringFormat
+     * @returns {*}
+     */
+    function msgFormat(stringFormat) {
+        return stringFormat.slice(0,42).replace(/[*_@!]|https?:\/\/(www\.)?(tenor.com\/view\/)?/g, '');
     }
 
 
