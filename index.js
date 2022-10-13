@@ -24,12 +24,13 @@ client.on('messageCreate', async message => {
     let msgContent = message.content;
 
     const OWNER_ID = "134729717550022656";
-    const guild = await client.guilds.cache.get('631191166934581249');
-    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
-    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleWhiteList = ["652144621023002637", "652143998252744724"];
-    const aRoleBlackList = ["905473942137995315", "631243981182861352"]; // exception de ping sur ce role (Miller, Mee6, VIP etc)
-    const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // exception de ping sur ce role // const aRoleStaffRcc = process.env.ROLE_STAFF;
+    // const guild = await client.guilds.cache.get('631191166934581249');
+    const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
+    const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
+    // const aRoleWhiteList = ["1023514578426011718", "1019859030887383040", "652144621023002637", "652143998252744724"];
+    const aRoleBlackList = ["274990592856162305"];
+    // const aRoleBlackList = ["1023514578426011718", "1019859030887383040", "1022785495438200842", "905473942137995315", "631243981182861352"]; // tjrs present,invité, absent, exception de ping sur ce role (Miller, Mee6, VIP etc)
+    const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // checkAdmin() const aRoleStaffRcc = process.env.ROLE_STAFF;
 
     const allGuildMembers = await guild.members.fetch();
     const chan = await message.channel; // current channel as default
@@ -77,6 +78,7 @@ client.on('messageCreate', async message => {
      * @param {*} toJsonData
      */
     function saveGuys(toJsonData) {
+
         let JsonArrayOfObjects = JSON.stringify(toJsonData);
         fs.writeFile("Data/Guys.json", JsonArrayOfObjects, function(err, result) {
             if (err) {
@@ -123,7 +125,7 @@ client.on('messageCreate', async message => {
     /**
      * Get Members from current channel
      * that are not bots
-     * @param argChanGuildUsers GuildChannelManager GuildChannelMembers members of a channel
+     * @param argChanGuildUsers members of a channel (GuildChannelManager GuildChannelMembers)
      * @returns {[]} array of member IDs from a channel
      */
     function membersChannelArray(argChanGuildUsers) {
@@ -391,7 +393,8 @@ client.on('messageCreate', async message => {
                     absGuys[i].isAbsent = false;
                     absGuys[i].dateAbsEnd = null;
                     updateGuy(absGuys[i]);
-                    console.log('Fin d\'absence de ' + absGuys[i].nickname)
+                    logAppendF('Fin d\'absence de ' + absGuys[i].nickname);
+                    // ('Fin d\'absence de ' + absGuys[i].nickname)
                 } /*else {
                 console.log("Absence toujours en cours.")
             }*/
@@ -502,7 +505,7 @@ client.on('messageCreate', async message => {
      * @returns {*}
      */
     function msgFormat(stringFormat) {
-        return stringFormat.slice(0,42).replace(/[*_@!]|https?:\/\/(www\.)?(tenor.com\/view\/)?/g, '');
+        return stringFormat.slice(0,42).replace(/[*_@!~]|https?:\/\/(www\.)?(tenor.com\/view\/)?/g, '');
     }
 
 
@@ -529,14 +532,15 @@ client.on('messageCreate', async message => {
         // compares manifested and unmanifested from current channel
 
         message.delete();
+        // listAbsences();
 
         const aPresenceC = await filterUnmanifestedMembers(a,b);
-        const displayUnmanifested = aPresenceC.map(_x => `${_x.isAbsent ? '' : '<@' + _x.id + '>'}`);
+        const displayUnmanifested = aPresenceC.map(_x => `${(_x.isAbsent || _x.hasException) ? '' : '<@' + _x.id + '>'}`);
         const strUnmanifested =  "Merci d'indiquer votre **présence/absence** afin d'aider les game masters: \n";
 
         logAppendF(strUnmanifested + [...displayUnmanifested].join(' - '));
         message.channel.send(strUnmanifested + [...displayUnmanifested].join(' '));
-        // TODO ajouter condition si displayUnmanifested empty tout le monde s'est manifeté.
+        // TODO ajouter condition si displayUnmanifested empty tout le monde s'est manifesté ?
 
         console.log(`\n — Presence command used by ${message.author.username}. \n`);
 
@@ -544,6 +548,8 @@ client.on('messageCreate', async message => {
         // compares manifested and unmanifested from a targeted channel with all white-listed (role) in the Guild.
 
         message.delete();
+        listAbsences();
+
         let inputChannelId = "0";
         let argTextRecap = msgContent.slice(7);
         let aManifested_B = [];
@@ -579,7 +585,7 @@ client.on('messageCreate', async message => {
         if (aRecapC !== null) {
             logAppendF(aRecapC.map((_x, index) => `${index+1}. ${_x.nickname}\n`).join(''));
             message.channel.send('__Recap des membres manifestés sur le channel <#' + inputChannelId + '>:__\n' + aManifested_B.map((_x, index) => `${index+1}. **${_x.nickname}:** _${_x.lastMessage}_\n`).join(''));
-            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*absent jusqu\'au ' + _x.dateAbsEnd + '*' : '' }\n`).join(''); // TODO if null show "undertimed"
+            let txtRecapNonManif = '__Recap des non-manifestés:__ \n' + aRecapC.map((_x, index) => `${index+1}. **${_x.nickname}** ${ _x.isAbsent ? '*absent ==> ' + _x.dateAbsEnd + '*' : '' }\n`).join(''); // TODO if null show "undertimed"
             message.channel.send(txtRecapNonManif);
             console.log(`\n — Recap command used by ${message.author.username}. \n`);
         } else {
@@ -611,6 +617,8 @@ client.on('messageCreate', async message => {
             } else if (arg3[2].toUpperCase() === 'ON') {
                 if (regexDate.test(arg3[3])) {
                     editAbsent(inputUserId, true, arg3[3]);
+                } else if (arg3[3] === "?") {
+                    editAbsent(inputUserId, true, "date indéterminée");
                 } else {
                     editAbsent(inputUserId, true);
                 }
@@ -619,7 +627,7 @@ client.on('messageCreate', async message => {
                 console.error('Error arg3[2] with !absent command. Unknown parameter, must be ON or OFF.');
             }
 
-            console.log('set ' + findGuy(inputUserId).nickname + ' absent status: ' + findGuy(inputUserId).isAbsent);
+            // console.log('set ' + findGuy(inputUserId).nickname + ' absent status: ' + findGuy(inputUserId).isAbsent); // bug .nickname not found if not in .json
 
         } else {
             console.log(strRegexError + " Must be @Member + On/Off");

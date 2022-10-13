@@ -10,6 +10,7 @@ README
 > run the bot file
 
 
+
 Meet Miller
 -----------
 Miller is a bot that lists and ping people that have not send any message in a specific channel.
@@ -21,15 +22,20 @@ Commands
 
 - !presence
 - !recap (#channel optionnal parameter)
-> TODO inserer debut du message
-> Bug presence unexpected end of json
 
-> Creer commande liste all white listed
-Roadmap:
+Experimental:
 ------------------~~~~
-- !absent (@user, false = default)
-> set absent status
-- !absences 
+- !absent (@user, on/off, date end)
+- !absences
 > list absences
 
-+ tests verif data post update
+BUG TO FIX:
+-----------
+- Handle json format error
+- InitGuys like recap does
+- HasException only set at creation, but not updated
+
+TODO:
+-----------
+- Create regular event with week day as parameter.
+- Creer commande liste all white listed
