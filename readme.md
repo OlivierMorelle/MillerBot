@@ -13,9 +13,11 @@ README
 
 Meet Miller
 -----------
-Miller is a bot that lists and ping people that have not send any message in a specific channel.
-It is used for event registering when a channel is created for a specific event.
-The need of this bot comes from organisation of Arma missions.
+Miller is a bot that lists and ping people that did not send any message in a specific channel.
+It is used for event registration.
+When a channel is created for a specific event, everyone is asked to announce their participation or not and if so, to select an available slot.
+
+
 
 Commands
 --------
@@ -24,10 +26,12 @@ Commands
 - !recap (#channel optionnal parameter)
 
 Experimental:
-------------------~~~~
+-------------
 - !absent (@user, on/off, date end)
 - !absences
 > list absences
+- !event
+> Create Discord event for next saturday:16:30 by default.
 
 BUG TO FIX:
 -----------
