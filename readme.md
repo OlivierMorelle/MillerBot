@@ -35,11 +35,9 @@ Experimental:
 
 BUG TO FIX:
 -----------
-- Handle json format error
+- Handle json error
 - InitGuys like recap does
-- HasException only set at creation, but not updated
 
 TODO:
 -----------
-- Create regular event with week day as parameter.
-- Creer commande liste all white listed
+- Creer commande liste all white listed ?
