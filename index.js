@@ -725,7 +725,7 @@ client.on('messageCreate', async message => {
             scheduledEndTime: timeEnd,
             privacyLevel: 'GUILD_ONLY',
             entityType: 'EXTERNAL',
-            description: "Mission:\nModset:\n\nInscription et choix du slot directement dans le salon #mission.\nAdressez-vous à un modérateur pour demander l'accès au salon d'inscription.\n",
+            description: "Mission: TBD\nModset: TBD\n\nInscription et choix du slot directement dans le salon #mission.\nAdressez-vous à un modérateur pour demander l'accès au salon d'inscription.\n",
             entityMetadata: {location: 'Serveur du 1er R.C.C / TeamSpeak'},
             // image: "https://cdn.discordapp.com/attachments/964589608820158505/1030824108277108828/RVSLogo.jpg",
             reason: "Missions hebdomadaire du 1er R.C.C"

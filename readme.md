@@ -36,8 +36,11 @@ Experimental:
 BUG TO FIX:
 -----------
 - Handle json error
-- InitGuys like recap does
+- InitGuys (like recap)
 
 TODO:
 -----------
-- Creer commande liste all white listed ?
+- Break up code into separate files with modules. import export.
+- .env variable
+- Test Unitaire
+- Create cmd: list all white listed 
