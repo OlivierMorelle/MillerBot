@@ -1,8 +1,13 @@
+/**/
 require("dotenv").config(); //to start process from .env file
-
 const {Client, Intents}=require("discord.js");
 const fs = require('fs');
-
+/**
+import 'dotenv/config.js';
+import {Client, Intents} from 'discord.js';
+import * as fs from 'fs';
+// import { Guy } from './guy.js';
+*/
 const client = new Client({intents: [Intents.FLAGS.GUILDS, "GUILDS", "GUILD_MESSAGES", "GUILD_PRESENCES", "GUILD_MEMBERS", "DIRECT_MESSAGES"]});
 
 client.once("ready", () => {
@@ -12,7 +17,6 @@ client.once("ready", () => {
 
 
 client.on('messageCreate', async message => {
-    const wait = require('util').promisify(setTimeout);        // await wait(500);
 
     ///// PRE INITIALISATION \\\\\
     const prefix = "!";
@@ -23,14 +27,11 @@ client.on('messageCreate', async message => {
     const regexDate = /(?:(?:31(\/)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/)(?:0?[13-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/)(?:(?:0?[1-9])|(?:1[0-2]))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})/;
     let msgContent = message.content;
 
-    const OWNER_ID = "134729717550022656";
-    const guild = await client.guilds.cache.get('631191166934581249');
-    // const guild = await client.guilds.cache.get('238725589379317761'); // guild test 238725589379317761
-    // const aRoleWhiteList = ["274990592856162305", "238728154380763136"]; // test voyageur 274990592856162305 / couillon 238728154380763136
-    const aRoleWhiteList = ["652144621023002637", "652143998252744724", "1019859030887383040"]; // 1st must be Member (isMember) Member, Friend, Invited.
-    // const aRoleBlackList = ["274990592856162305"];
-    const aRoleBlackList = ["1019859030887383040", "905473942137995315", "631243981182861352"]; // Exception de ping sur ces roles. Invited, Miller, Mee6
-    const aRoleStaffRcc = ["652145728910524436", "631235492763009054"]; // checkAdmin() const aRoleStaffRcc = process.env.ROLE_STAFF;
+    const OWNER_ID = process.env.ID_OWNER;
+    const guild = await client.guilds.cache.get(process.env.GUILD_ID);
+    const aRoleWhiteList = process.env.ROLE_WHITE_LIST.split(","); // 1st must be Member (isMember) Member, Friend, Invited.
+    const aRoleBlackList = process.env.ROLE_BLACK_LIST.split(","); // Ping exception on those roles. Invited, Bots, VIP, etc
+    const aRoleStaffRcc = process.env.ROLE_STAFF.split(","); // cf checkAdmin()
 
     const allGuildMembers = await guild.members.fetch();
     const chan = await message.channel; // current channel as default
@@ -50,7 +51,6 @@ client.on('messageCreate', async message => {
     let myGuys = JSON.parse(fs.readFileSync('Data/Guys.json', 'utf-8'));
     // let myGuys = await collectGuys(ALL_GuildMembers_A); // init Guy objects
     let myTmpGuys = []; // not saved in json. Opti for !presence cmd
-    // console.log(myGuys);
 
 
 
@@ -58,7 +58,7 @@ client.on('messageCreate', async message => {
 
     /**
      * Guy class and constructor
-     */
+    */
     class Guy {
         constructor (id, nickname, roles, isRccMember, hasCredential, hasException, lastMessage = "", isAbsent = null, dateAbsStart = null, dateAbsEnd = null, dateTimestamp = date) {
             this.id = id;
@@ -73,7 +73,7 @@ client.on('messageCreate', async message => {
             this.dateAbsEnd = dateAbsEnd;
             this.dateTimestamp = dateTimestamp; // created
         }
-    }
+    }/**/
 
     /**
      * Dump json function
@@ -740,12 +740,13 @@ client.on('messageCreate', async message => {
         guild.channels.create('new-general', { reason: 'Needed a cool new channel' })
             .then(console.log)
             .catch(console.error);
-
          */
 
     } else if ((command === 'test') && (checkAdminOrModo(chanGuildUsers, '!test'))) {
 
         message.channel.send('test');
+        console.log(process.env.ROLE_STAFF)
+
         message.delete();
 
     } else if ((command === 'say') && (checkAdminOrModo(chanGuildUsers, '!say'))) {

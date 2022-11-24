@@ -103,13 +103,15 @@ dist
 # TernJS port file
 .tern-port
 
-# Project manual
-/idea/*
+# Project manual specific
+/.idea/*
 auth.json
 .env
+.envDev
 
-# Random
+# local specific
 startMiller.bat
+Miller.bat
 /Data/*
 /Logs/*
 /Backup/*
