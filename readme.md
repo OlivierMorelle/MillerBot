@@ -35,11 +35,12 @@ Experimental:
 
 BUG TO FIX:
 -----------
-- Handle json format error
-- InitGuys like recap does
-- HasException only set at creation, but not updated
+- Handle json error
+- InitGuys (like recap)
 
 TODO:
 -----------
-- Create regular event with week day as parameter.
-- Creer commande liste all white listed
+- Break up code into separate files with modules. import export.
+- .env variable
+- Test Unitaire
+- Create cmd: list all white listed 
